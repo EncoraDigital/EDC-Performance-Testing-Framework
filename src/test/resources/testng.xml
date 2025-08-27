@@ -1,13 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
-<suite name="E2E Testing Suite">
+<suite name="Choice Hotels E2E Testing Suite">
     
-    <test name="Desktop Chrome Tests">
+    <test name="Choice Hotels Chrome Tests">
+        <parameter name="browser" value="chrome"/>
+        <classes>
+            <class name="com.choice.testing.tests.desktop.ChoiceHotelsTest"/>
+        </classes>
+    </test>
+
+      <!-- 
+    <test name="DuckDuckGo Tests">
         <parameter name="browser" value="chrome"/>
         <classes>
             <class name="com.choice.testing.tests.desktop.HomePageTest"/>
         </classes>
     </test>
+    -->
     
     <!-- Future mobile tests -->
     <!-- 
