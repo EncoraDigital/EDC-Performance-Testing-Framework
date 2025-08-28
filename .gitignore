@@ -84,8 +84,7 @@ test-output/
 screenshots/
 videos/
 
-# WebDriver binaries (se descargan automáticamente)
-drivers/
+# WebDriver binaries (download automatic)
 chromedriver*
 geckodriver*
 msedgedriver*

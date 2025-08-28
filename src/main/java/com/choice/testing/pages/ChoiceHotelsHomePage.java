@@ -198,15 +198,27 @@ public class ChoiceHotelsHomePage extends BasePage {
     // Complete hotel search flow
     public void performHotelSearch(String destination, int checkinDays, int checkoutDays, int rooms, int adults) {
         System.out.println("🏨 Starting hotel search flow...");
-        
-        clickFindHotelInNav();
-        selectAllTypeHotels();
-        enterDestination(destination);
-        enterDates(checkinDays, checkoutDays);
-        selectRoomsAndGuests(rooms, adults);
-        clickSearch();
-        
+    
+        try {
+            clickFindHotelInNav();
+            Thread.sleep(2000);
+    
+            selectAllTypeHotels();
+            Thread.sleep(1500);
+    
+            enterDestination(destination);
+            Thread.sleep(2000);
+    
+            enterDates(checkinDays, checkoutDays);
+            selectRoomsAndGuests(rooms, adults);
+            clickSearch();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.err.println("⚠️ Error during hotel search: " + e.getMessage());
+            e.printStackTrace();
+        }
+    
         System.out.println("🏨 Hotel search completed!");
-    }
+    }    
 }
 
