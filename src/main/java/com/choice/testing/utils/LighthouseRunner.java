@@ -3,6 +3,8 @@ package com.choice.testing.utils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.FileUtils;
+import io.qameta.allure.Allure;
+import io.qameta.allure.Attachment;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -132,7 +134,18 @@ public class LighthouseRunner {
     
     private static List<String> buildLighthouseCommand(String url, String outputBasePath, String htmlPath, Map<String, String> options) {
         List<String> command = new ArrayList<>();
-        command.add("lighthouse");
+        
+        // Use nvm node path to ensure we use the correct Node.js version
+        String homeDir = System.getProperty("user.home");
+        String nvmNodePath = homeDir + "/.nvm/versions/node/v22.15.1/bin/lighthouse";
+        
+        // Check if nvm lighthouse exists, otherwise fall back to system lighthouse
+        File nvmLighthouse = new File(nvmNodePath);
+        if (nvmLighthouse.exists()) {
+            command.add(nvmNodePath);
+        } else {
+            command.add("lighthouse");
+        }
         command.add(url);
         command.add("--output=json,html");
         command.add("--output-path=" + outputBasePath);  // Without extension, Lighthouse adds it
@@ -161,6 +174,23 @@ public class LighthouseRunner {
     private static Process executeCommand(List<String> command) throws Exception {
         ProcessBuilder processBuilder = new ProcessBuilder(command);
         processBuilder.redirectErrorStream(true);
+        
+        // Set up environment for nvm Node.js version
+        Map<String, String> env = processBuilder.environment();
+        String homeDir = System.getProperty("user.home");
+        
+        // Add nvm node path to PATH
+        String nvmBinPath = homeDir + "/.nvm/versions/node/v22.15.1/bin";
+        String currentPath = env.get("PATH");
+        if (currentPath != null) {
+            env.put("PATH", nvmBinPath + ":" + currentPath);
+        } else {
+            env.put("PATH", nvmBinPath);
+        }
+        
+        // Set NVM environment variables
+        env.put("NVM_DIR", homeDir + "/.nvm");
+        env.put("NODE_VERSION", "v22.15.1");
         
         Process process = processBuilder.start();
         
@@ -249,4 +279,81 @@ public class LighthouseRunner {
         System.out.println("Please manually open: " + reportPath);
     }
   }
+
+    /**
+     * Attach Lighthouse HTML report to Allure report
+     */
+    public static void attachLighthouseReportToAllure(LighthouseMetrics metrics, String testName) throws IOException {
+        if (metrics.getReportPath() != null && new File(metrics.getReportPath()).exists()) {
+            File htmlReportFile = new File(metrics.getReportPath());
+            byte[] htmlContent = Files.readAllBytes(htmlReportFile.toPath());
+            
+            Allure.addAttachment(
+                testName + " - Lighthouse HTML Report",
+                "text/html",
+                new java.io.ByteArrayInputStream(htmlContent),
+                ".html"
+            );
+            
+            // Also attach the JSON report for raw data
+            String jsonPath = metrics.getReportPath().replace(".report.html", ".report.json");
+            File jsonReportFile = new File(jsonPath);
+            if (jsonReportFile.exists()) {
+                byte[] jsonContent = Files.readAllBytes(jsonReportFile.toPath());
+                Allure.addAttachment(
+                    testName + " - Lighthouse JSON Report",
+                    "application/json",
+                    new java.io.ByteArrayInputStream(jsonContent),
+                    ".json"
+                );
+            }
+        }
+    }
+
+    /**
+     * Attach Lighthouse metrics summary as text attachment
+     */
+    @Attachment(value = "Lighthouse Metrics Summary", type = "text/plain")
+    public static String attachLighthouseMetrics(LighthouseMetrics metrics, String url) {
+        StringBuilder summary = new StringBuilder();
+        summary.append("Lighthouse Performance Report\n");
+        summary.append("=============================\n");
+        summary.append("URL: ").append(url).append("\n");
+        summary.append("Timestamp: ").append(new java.util.Date()).append("\n\n");
+        
+        summary.append("Category Scores:\n");
+        summary.append("- Performance: ").append(String.format("%.1f%%", metrics.getPerformanceScore() * 100)).append("\n");
+        summary.append("- Accessibility: ").append(String.format("%.1f%%", metrics.getAccessibilityScore() * 100)).append("\n");
+        summary.append("- Best Practices: ").append(String.format("%.1f%%", metrics.getBestPracticesScore() * 100)).append("\n");
+        summary.append("- SEO: ").append(String.format("%.1f%%", metrics.getSeoScore() * 100)).append("\n\n");
+        
+        summary.append("Core Web Vitals:\n");
+        summary.append("- First Contentful Paint (FCP): ").append(String.format("%.0f ms", metrics.getFirstContentfulPaint())).append("\n");
+        summary.append("- Largest Contentful Paint (LCP): ").append(String.format("%.0f ms", metrics.getLargestContentfulPaint())).append("\n");
+        summary.append("- Speed Index: ").append(String.format("%.0f ms", metrics.getSpeedIndex())).append("\n");
+        summary.append("- Total Blocking Time (TBT): ").append(String.format("%.0f ms", metrics.getTotalBlockingTime())).append("\n");
+        summary.append("- Cumulative Layout Shift (CLS): ").append(String.format("%.3f", metrics.getCumulativeLayoutShift())).append("\n");
+        
+        return summary.toString();
+    }
+
+    /**
+     * Complete Allure integration - attaches both reports and metrics
+     */
+    public static void attachAllReportsToAllure(LighthouseMetrics metrics, String url, String testName) throws IOException {
+        // Attach metrics summary
+        attachLighthouseMetrics(metrics, url);
+        
+        // Attach HTML and JSON reports
+        attachLighthouseReportToAllure(metrics, testName);
+        
+        // Add step information to Allure
+        Allure.step("Lighthouse Performance Audit Completed", () -> {
+            Allure.parameter("URL", url);
+            Allure.parameter("Performance Score", String.format("%.1f%%", metrics.getPerformanceScore() * 100));
+            Allure.parameter("Accessibility Score", String.format("%.1f%%", metrics.getAccessibilityScore() * 100));
+            Allure.parameter("Best Practices Score", String.format("%.1f%%", metrics.getBestPracticesScore() * 100));
+            Allure.parameter("SEO Score", String.format("%.1f%%", metrics.getSeoScore() * 100));
+        });
+    }
 }

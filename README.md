@@ -24,7 +24,7 @@ A comprehensive end-to-end testing framework for measuring, monitoring, and impr
 - **WebDriverManager** - Automatic driver management
 
 ### Performance & Monitoring
-- **Lighthouse CI** - Performance auditing
+- **Lighthouse** - Performance auditing with Allure integration ✅
 - **Chrome DevTools Protocol** - Performance metrics extraction
 - **BrowserMob Proxy** - Network traffic capture
 - **OWASP ZAP** - Security testing integration
@@ -71,6 +71,8 @@ e2e-testing-framework/
 
 - **Java 11 or higher**
 - **Maven 3.6+**
+- **Node.js 22.15.1+** (via nvm) - Required for Lighthouse
+- **Lighthouse CLI** - `npm install -g lighthouse`
 - **Chrome/Firefox** browsers installed
 - **Android SDK** (for mobile testing)
 - **Xcode** (for iOS testing on macOS)
@@ -84,17 +86,33 @@ git clone Repository https://github.com/your-username/e2e-testing-framework.git
 cd e2e-testing-framework
 ```
 
-### 2. Install dependencies
+### 2. Setup Node.js and Lighthouse
+```bash
+# Install nvm (if not already installed)
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+
+# Install and use Node.js 22.15.1
+nvm install 22.15.1
+nvm use 22.15.1
+
+# Install Lighthouse globally
+npm install -g lighthouse
+```
+
+### 3. Install Maven dependencies
 ```bash
 mvn clean install
 ```
 
-### 3. Verify installation
+### 4. Verify installation
 ```bash
 mvn clean compile test-compile
+
+# Verify Lighthouse installation
+lighthouse --version
 ```
 
-### 4. Configure test environment
+### 5. Configure test environment
 Edit `src/test/resources/config.properties`:
 ```properties
 # Update URLs and configurations for your application
@@ -118,6 +136,15 @@ mvn test -Dtest=HomePageTest
 
 # Run specific test method
 mvn test -Dtest=HomePageTest#testHomePageLoad
+```
+
+### Performance Testing with Lighthouse
+```bash
+# Run Lighthouse performance tests
+mvn test -Dtest=LighthouseBasicTest
+
+# Run individual Lighthouse tests
+mvn test -Dtest=LighthouseBasicTest -Dtest.methods=testLighthouseBasicIntegration
 ```
 
 ### Mobile Tests (Future Implementation)
@@ -169,8 +196,25 @@ mvn allure:serve
 ```
 
 ### View Reports
-- **Allure Reports**: `target/site/allure-maven-plugin/index.html`
+```bash
+# Open Allure report in browser (recommended)
+mvn allure:serve
+
+# Or manually open generated HTML file
+open allure-results/html-report/index.html
+```
+
+- **Allure Reports**: `allure-results/html-report/index.html`
+- **Lighthouse Reports**: `reports/lighthouse/`
 - **Surefire Reports**: `target/surefire-reports/`
+
+### Lighthouse Integration Features
+The Allure reports now include:
+- 📊 **Performance Metrics**: Core Web Vitals, Performance scores
+- 📄 **HTML Reports**: Interactive Lighthouse audit reports
+- 💾 **Raw Data**: JSON files with detailed performance data  
+- 📈 **Parameters**: Key metrics displayed in test overview
+- 📋 **Test Steps**: Detailed audit execution steps
 
 ## 🎯 Writing Tests
 
@@ -216,6 +260,41 @@ public class LoginTest extends BaseTest {
 }
 ```
 
+### Creating a Lighthouse Performance Test
+```java
+@Epic("Performance Testing")
+@Feature("Lighthouse Integration")
+public class PerformanceTest extends BaseTest {
+    
+    @Test
+    @Story("Website Performance Audit")
+    @Description("Performs Lighthouse audit and integrates results with Allure")
+    @Severity(SeverityLevel.NORMAL)
+    public void testWebsitePerformance() throws Exception {
+        String testUrl = "https://your-website.com";
+        String testName = "Website Performance Audit";
+        
+        Allure.step("Starting Lighthouse audit for: " + testUrl, () -> {
+            System.out.println("Running performance audit...");
+        });
+        
+        LighthouseRunner.LighthouseMetrics metrics = 
+            LighthouseRunner.runLighthouseAudit(testUrl);
+        
+        // Attach reports to Allure
+        LighthouseRunner.attachAllReportsToAllure(metrics, testUrl, testName);
+        
+        // Assert performance thresholds
+        Allure.step("Validating performance metrics", () -> {
+            Assert.assertTrue(metrics.getPerformanceScore() >= 0.5, 
+                "Performance score should be at least 50%");
+            Assert.assertTrue(metrics.getAccessibilityScore() >= 0.9, 
+                "Accessibility score should be at least 90%");
+        });
+    }
+}
+```
+
 ## 🔍 Debugging
 
 ### Enable Debug Logging
@@ -238,13 +317,18 @@ System.setProperty("webdriver.chrome.verboseLogging", "true");
    - Ensure Appium server is running on correct port
    - Check `appium.server.url` in config
 
+4. **Lighthouse/Node.js issues**
+   - Ensure Node.js 22.15.1+ is active: `nvm use 22.15.1`
+   - Verify Lighthouse installation: `lighthouse --version`
+   - Check ICU4C compatibility on macOS
+
 ## 🚀 Future Enhancements
 
 ### Phase 2 Implementation
 - [ ] Complete Appium mobile testing integration
 - [ ] BrowserMob Proxy for network monitoring
 - [ ] Chrome DevTools Protocol performance metrics
-- [ ] Lighthouse CI integration
+- [x] **Lighthouse integration with Allure reporting** ✅
 - [ ] OWASP ZAP security testing
 
 ### Phase 3 Implementation  
