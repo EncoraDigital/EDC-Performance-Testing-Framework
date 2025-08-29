@@ -82,8 +82,42 @@ public class LighthouseRunner {
     }
     
     public static LighthouseMetrics runLighthouseAudit(String url, Map<String, String> options) throws Exception {
-        System.out.println("Running Lighthouse audit for: " + url);
+        return runLighthouseAuditWithRetry(url, options, 3, 10000); // 3 retries with 10s delay
+    }
+    
+    private static LighthouseMetrics runLighthouseAuditWithRetry(String url, Map<String, String> options, int maxRetries, int delayMs) throws Exception {
+        Exception lastException = null;
         
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                System.out.println("Running Lighthouse audit for: " + url + " (Attempt " + attempt + "/" + maxRetries + ")");
+                
+                // Add delay between attempts (except first)
+                if (attempt > 1) {
+                    System.out.println("Waiting " + delayMs + "ms before retry...");
+                    Thread.sleep(delayMs);
+                }
+                
+                return executeAudit(url, options);
+                
+            } catch (Exception e) {
+                lastException = e;
+                System.out.println("Attempt " + attempt + " failed: " + e.getMessage());
+                
+                if (attempt == maxRetries) {
+                    System.out.println("All retry attempts exhausted");
+                    break;
+                }
+                
+                // Exponential backoff
+                delayMs *= 2;
+            }
+        }
+        
+        throw new RuntimeException("Lighthouse audit failed after " + maxRetries + " attempts", lastException);
+    }
+    
+    private static LighthouseMetrics executeAudit(String url, Map<String, String> options) throws Exception {
         // Create reports directory if it doesn't exist
         createReportsDirectory();
         
@@ -150,11 +184,29 @@ public class LighthouseRunner {
         command.add("--output=json,html");
         command.add("--output-path=" + outputBasePath);  // Without extension, Lighthouse adds it
         
-        // Simplified Chrome flags
-        command.add("--chrome-flags=--no-sandbox --disable-dev-shm-usage --disable-gpu");
+        // Minimal Chrome flags - less likely to trigger bot detection
+        StringBuilder chromeFlags = new StringBuilder();
+        chromeFlags.append("--no-sandbox ");
+        chromeFlags.append("--disable-dev-shm-usage ");
+        chromeFlags.append("--user-agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' ");
+        chromeFlags.append("--window-size=1920,1080 ");
+        chromeFlags.append("--disable-extensions ");
         
+        command.add("--chrome-flags=" + chromeFlags.toString().trim());
+        
+        // Simple headers to appear more like a regular browser
+        String extraHeaders = "{" +
+            "\"Referer\":\"https://www.google.com\"" +
+            "}";
+        
+        command.add("--extra-headers=" + extraHeaders);
+        
+        // Additional Lighthouse flags for better compatibility
         command.add("--quiet");
         command.add("--no-enable-error-reporting");
+        command.add("--max-wait-for-load=45000");  // Wait longer for page load
+        command.add("--skip-audits=uses-http2,bf-cache");  // Skip problematic audits
+        command.add("--throttling-method=provided");  // Use provided network throttling
         
         // Add additional options if provided
         if (options != null) {
