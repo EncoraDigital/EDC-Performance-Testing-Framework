@@ -92,6 +92,7 @@ msedgedriver*
 # Reports and logs
 reports/
 logs/
+.allure/
 allure-results/
 allure-report/
 target/allure-results/

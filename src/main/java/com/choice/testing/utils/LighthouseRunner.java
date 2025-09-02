@@ -117,6 +117,7 @@ public class LighthouseRunner {
         throw new RuntimeException("Lighthouse audit failed after " + maxRetries + " attempts", lastException);
     }
     
+    
     private static LighthouseMetrics executeAudit(String url, Map<String, String> options) throws Exception {
         // Create reports directory if it doesn't exist
         createReportsDirectory();
@@ -184,11 +185,10 @@ public class LighthouseRunner {
         command.add("--output=json,html");
         command.add("--output-path=" + outputBasePath);  // Without extension, Lighthouse adds it
         
-        // Minimal Chrome flags - less likely to trigger bot detection
+        // Minimal Chrome flags
         StringBuilder chromeFlags = new StringBuilder();
         chromeFlags.append("--no-sandbox ");
         chromeFlags.append("--disable-dev-shm-usage ");
-        chromeFlags.append("--user-agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' ");
         chromeFlags.append("--window-size=1920,1080 ");
         chromeFlags.append("--disable-extensions ");
         
