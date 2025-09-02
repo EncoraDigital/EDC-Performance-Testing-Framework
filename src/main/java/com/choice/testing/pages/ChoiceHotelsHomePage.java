@@ -21,22 +21,25 @@ public class ChoiceHotelsHomePage extends BasePage {
     @FindBy(css = "select[name*='hotel-type'], #hotel-type-select, .hotel-type-dropdown")
     private WebElement hotelTypeDropdown;
     
-    @FindBy(css = "input[name*='destination'], #destination-input, .destination-field")
+    // @FindBy(css = "input[name*='destination'], #destination-input, .destination-field")
+    // private WebElement destinationInput;
+
+    @FindBy(css = "input[placeholder='Where to?']")
     private WebElement destinationInput;
     
-    @FindBy(css = "input[name*='checkin'], #checkin-date, .checkin-input")
+    @FindBy(css = "button[id='checkInDate'], button[data-track-id='searchFormCheckInDate']")
     private WebElement checkinDateInput;
     
-    @FindBy(css = "input[name*='checkout'], #checkout-date, .checkout-input")
+    @FindBy(css = "button[id='checkOutDate'], button[aria-label*='Check-Out Date']")
     private WebElement checkoutDateInput;
     
-    @FindBy(css = "select[name*='rooms'], #rooms-select, .rooms-dropdown")
+    @FindBy(css = "button[data-track-id='searchFormRoomsandGuests'], button[class*='occupancy-button-trigger']")
     private WebElement roomsDropdown;
     
-    @FindBy(css = "select[name*='adults'], #adults-select, .adults-dropdown")
+    @FindBy(css = "input[id='adults-input'], input[type='number'][max='8']")
     private WebElement adultsDropdown;
     
-    @FindBy(css = "button[type='submit'], .search-button, .find-hotels-btn")
+    @FindBy(css = "button[data-track-id='FindHotelsBTN'], button[type='submit'][class*='primary_cta']")
     private WebElement searchButton;
     
     // Alternative selectors for common patterns
@@ -48,7 +51,6 @@ public class ChoiceHotelsHomePage extends BasePage {
     
     public void navigateToHomePage() {
         driver.get("https://www.choicehotels.com/");
-        // Wait for page to load
         wait.until(ExpectedConditions.urlContains("choicehotels"));
     }
     
@@ -91,7 +93,6 @@ public class ChoiceHotelsHomePage extends BasePage {
     
     public void enterDestination(String destination) {
         try {
-            // Wait for destination input to be clickable
             wait.until(ExpectedConditions.elementToBeClickable(destinationInput));
             sendKeys(destinationInput, destination);
             System.out.println("✅ Entered destination: " + destination);
@@ -114,51 +115,137 @@ public class ChoiceHotelsHomePage extends BasePage {
         String checkoutStr = checkoutDate.format(formatter);
         
         try {
-            // Clear and enter check-in date
+            // Click check-in date button to open date picker
             wait.until(ExpectedConditions.elementToBeClickable(checkinDateInput));
-            checkinDateInput.clear();
-            sendKeys(checkinDateInput, checkinStr);
-            System.out.println("✅ Entered check-in date: " + checkinStr);
+            clickElement(checkinDateInput);
+            System.out.println("✅ Clicked check-in date button");
             
-            // Clear and enter check-out date
+            // Wait for date picker to open and try to set date
+            Thread.sleep(1000);
+            
+            // Try to find and click the date in the calendar
+            try {
+                // Look for the specific date in the calendar
+                String dayOfMonth = String.valueOf(checkinDate.getDayOfMonth());
+                org.openqa.selenium.WebElement dateElement = driver.findElement(
+                    org.openqa.selenium.By.xpath("//button[contains(@aria-label, '" + dayOfMonth + "') or text()='" + dayOfMonth + "']")
+                );
+                clickElement(dateElement);
+                System.out.println("✅ Selected check-in date: " + checkinStr);
+            } catch (Exception dateEx) {
+                System.out.println("⚠️  Could not find specific date in calendar, using default");
+                // Press Escape to close picker
+                checkinDateInput.sendKeys(org.openqa.selenium.Keys.ESCAPE);
+            }
+            
+            // Small delay before checkout date
+            Thread.sleep(500);
+            
+            // Click check-out date button
             wait.until(ExpectedConditions.elementToBeClickable(checkoutDateInput));
-            checkoutDateInput.clear();
-            sendKeys(checkoutDateInput, checkoutStr);
-            System.out.println("✅ Entered check-out date: " + checkoutStr);
+            clickElement(checkoutDateInput);
+            System.out.println("✅ Clicked check-out date button");
+            
+            Thread.sleep(1000);
+            
+            // Try to find and click checkout date
+            try {
+                String checkoutDay = String.valueOf(checkoutDate.getDayOfMonth());
+                org.openqa.selenium.WebElement checkoutDateElement = driver.findElement(
+                    org.openqa.selenium.By.xpath("//button[contains(@aria-label, '" + checkoutDay + "') or text()='" + checkoutDay + "']")
+                );
+                clickElement(checkoutDateElement);
+                System.out.println("✅ Selected check-out date: " + checkoutStr);
+            } catch (Exception dateEx) {
+                System.out.println("⚠️  Could not find checkout date in calendar, using default");
+                checkoutDateInput.sendKeys(org.openqa.selenium.Keys.ESCAPE);
+            }
             
         } catch (Exception e) {
-            System.out.println("⚠️  Could not set dates, trying alternative method");
-            // Alternative: click on date inputs to open calendar picker
-            try {
-                clickElement(checkinDateInput);
-                // Add logic here to select dates from calendar if needed
-                Thread.sleep(500);
-                clickElement(checkoutDateInput);
-                Thread.sleep(500);
-            } catch (Exception ex) {
-                System.out.println("⚠️  Date selection failed");
-            }
+            System.out.println("⚠️  Date selection failed: " + e.getMessage());
         }
     }
     
     public void selectRoomsAndGuests(int rooms, int adults) {
         try {
-            // Select rooms
-            if (isElementPresent(roomsDropdown)) {
-                Select roomsSelect = new Select(roomsDropdown);
-                roomsSelect.selectByValue(String.valueOf(rooms));
-                System.out.println("✅ Selected " + rooms + " room(s)");
+            // Click the rooms & guests dropdown button to open the occupancy dropdown
+            wait.until(ExpectedConditions.elementToBeClickable(roomsDropdown));
+            clickElement(roomsDropdown);
+            System.out.println("✅ Clicked Rooms & Guests dropdown");
+            
+            // Wait for dropdown to open
+            Thread.sleep(1000);
+            
+            // Set adults count using the number input
+            try {
+                wait.until(ExpectedConditions.elementToBeClickable(adultsDropdown));
+                
+                // Clear the current value and enter new value
+                adultsDropdown.clear();
+                adultsDropdown.sendKeys(String.valueOf(adults));
+                System.out.println("✅ Set adults to: " + adults);
+                
+                // Alternative approach using the +/- buttons if direct input fails
+            } catch (Exception inputEx) {
+                System.out.println("⚠️  Direct input failed, trying +/- buttons");
+                try {
+                    // Find current value
+                    String currentValue = adultsDropdown.getAttribute("value");
+                    int currentAdults = Integer.parseInt(currentValue);
+                    
+                    if (adults > currentAdults) {
+                        // Click + button to increase
+                        org.openqa.selenium.WebElement plusButton = driver.findElement(
+                            org.openqa.selenium.By.xpath("//button[@data-track-id='adultsSpinButtonIncrement']")
+                        );
+                        for (int i = currentAdults; i < adults; i++) {
+                            clickElement(plusButton);
+                            Thread.sleep(200);
+                        }
+                    } else if (adults < currentAdults) {
+                        // Click - button to decrease  
+                        org.openqa.selenium.WebElement minusButton = driver.findElement(
+                            org.openqa.selenium.By.xpath("//button[@data-track-id='adultsSpinButtonDecrement']")
+                        );
+                        for (int i = currentAdults; i > adults; i--) {
+                            clickElement(minusButton);
+                            Thread.sleep(200);
+                        }
+                    }
+                    System.out.println("✅ Set adults to " + adults + " using +/- buttons");
+                } catch (Exception buttonEx) {
+                    System.out.println("⚠️  Could not adjust adults count: " + buttonEx.getMessage());
+                }
             }
             
-            // Select adults
-            if (isElementPresent(adultsDropdown)) {
-                Select adultsSelect = new Select(adultsDropdown);
-                adultsSelect.selectByValue(String.valueOf(adults));
-                System.out.println("✅ Selected " + adults + " adult(s)");
+            // For rooms, we might need to handle it differently - let's look for a rooms input/selector
+            try {
+                org.openqa.selenium.WebElement roomsInput = driver.findElement(
+                    org.openqa.selenium.By.xpath("//input[@id='rooms-input' or contains(@id, 'rooms')]")
+                );
+                roomsInput.clear();
+                roomsInput.sendKeys(String.valueOf(rooms));
+                System.out.println("✅ Set rooms to: " + rooms);
+            } catch (Exception roomsEx) {
+                System.out.println("⚠️  Could not find rooms input, using default (1 room)");
+            }
+            
+            // Click outside or on a "Done" button to close the dropdown
+            try {
+                // Look for a Done/Apply button
+                org.openqa.selenium.WebElement doneButton = driver.findElement(
+                    org.openqa.selenium.By.xpath("//button[contains(text(), 'Done') or contains(text(), 'Apply') or @aria-label='Close']")
+                );
+                clickElement(doneButton);
+                System.out.println("✅ Closed occupancy dropdown");
+            } catch (Exception closeEx) {
+                // If no Done button, click outside the dropdown
+                driver.findElement(org.openqa.selenium.By.tagName("body")).click();
+                System.out.println("✅ Clicked outside to close dropdown");
             }
             
         } catch (Exception e) {
-            System.out.println("⚠️  Could not set rooms/guests, might be set by default");
+            System.out.println("⚠️  Could not set rooms/guests: " + e.getMessage());
         }
     }
     
@@ -198,17 +285,17 @@ public class ChoiceHotelsHomePage extends BasePage {
     // Complete hotel search flow
     public void performHotelSearch(String destination, int checkinDays, int checkoutDays, int rooms, int adults) {
         System.out.println("🏨 Starting hotel search flow...");
-    
+
         try {
             clickFindHotelInNav();
             Thread.sleep(2000);
-    
+
             selectAllTypeHotels();
             Thread.sleep(1500);
-    
+
             enterDestination(destination);
             Thread.sleep(2000);
-    
+
             enterDates(checkinDays, checkoutDays);
             selectRoomsAndGuests(rooms, adults);
             clickSearch();
@@ -217,7 +304,7 @@ public class ChoiceHotelsHomePage extends BasePage {
             System.err.println("⚠️ Error during hotel search: " + e.getMessage());
             e.printStackTrace();
         }
-    
+
         System.out.println("🏨 Hotel search completed!");
     }    
 }
