@@ -59,7 +59,54 @@ public class DriverManager {
         }
     }
 
-    // Rest of methods remain the same
+    public static void initializeMobileDriver(String platformName, String deviceName) throws MalformedURLException {
+        DesiredCapabilities capabilities = new DesiredCapabilities();
+        
+        // Common capabilities
+        capabilities.setCapability("appium:newCommandTimeout", 300);
+        capabilities.setCapability("appium:connectHardwareKeyboard", true);
+        
+        switch (platformName.toLowerCase()) {
+            case "android":
+                capabilities.setCapability("platformName", "Android");
+                capabilities.setCapability("appium:deviceName", deviceName != null ? deviceName : "Pixel_6_API_33");
+                capabilities.setCapability("appium:automationName", "UiAutomator2");
+                capabilities.setCapability("appium:browserName", "Chrome");
+                capabilities.setCapability("appium:chromeOptions", getChromeOptionsForMobile());
+                
+                mobileDriver.set(new AndroidDriver(new URL("http://localhost:4723"), capabilities));
+                break;
+                
+            case "ios":
+                capabilities.setCapability("platformName", "iOS");
+                capabilities.setCapability("appium:deviceName", deviceName != null ? deviceName : "iPhone 14");
+                capabilities.setCapability("appium:automationName", "XCUITest");
+                capabilities.setCapability("appium:browserName", "Safari");
+                
+                mobileDriver.set(new IOSDriver(new URL("http://localhost:4723"), capabilities));
+                break;
+                
+            default:
+                throw new IllegalArgumentException("Mobile platform not supported: " + platformName);
+        }
+        
+        getMobileDriver().manage().timeouts().implicitlyWait(Duration.ofSeconds(30));
+    }
+    
+    private static java.util.Map<String, Object> getChromeOptionsForMobile() {
+        java.util.Map<String, Object> chromeOptions = new java.util.HashMap<>();
+        java.util.List<String> args = new java.util.ArrayList<>();
+        
+        args.add("--no-sandbox");
+        args.add("--disable-dev-shm-usage");
+        args.add("--disable-blink-features=AutomationControlled");
+        
+        chromeOptions.put("args", args);
+        chromeOptions.put("excludeSwitches", java.util.Arrays.asList("enable-automation"));
+        chromeOptions.put("useAutomationExtension", false);
+        
+        return chromeOptions;
+    }
     public static WebDriver getWebDriver() {
         return webDriver.get();
     }

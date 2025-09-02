@@ -1,0 +1,13 @@
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+<suite name="Choice Hotels Mobile Android Tests" verbose="1">
+    
+    <parameter name="platform" value="android"/>
+    <parameter name="deviceName" value="Pixel_6_API_33"/>
+    
+    <test name="Android Mobile Tests">
+        <classes>
+            <class name="com.choice.testing.tests.mobile.ChoiceHotelsMobileTest"/>
+        </classes>
+    </test>
+    
+</suite>

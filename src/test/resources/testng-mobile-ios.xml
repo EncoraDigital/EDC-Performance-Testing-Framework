@@ -1,0 +1,13 @@
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+<suite name="Choice Hotels Mobile iOS Tests" verbose="1">
+    
+    <parameter name="platform" value="ios"/>
+    <parameter name="deviceName" value="iPhone 14"/>
+    
+    <test name="iOS Mobile Tests">
+        <classes>
+            <class name="com.choice.testing.tests.mobile.ChoiceHotelsMobileTest"/>
+        </classes>
+    </test>
+    
+</suite>
