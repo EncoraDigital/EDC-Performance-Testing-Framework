@@ -322,6 +322,316 @@ System.setProperty("webdriver.chrome.verboseLogging", "true");
    - Verify Lighthouse installation: `lighthouse --version`
    - Check ICU4C compatibility on macOS
 
+## 📋 Lighthouse Setup Instructions
+
+### 💻 Local Development Setup
+
+#### Option 1: Using NVM (Recommended)
+
+##### Step 1: Install NVM
+```bash
+# macOS/Linux
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+
+# Windows (use Git Bash or WSL)
+curl -o- https://raw.githubusercontent.com/coreybutler/nvm-windows/master/install.cmd | cmd
+```
+
+##### Step 2: Restart Terminal and Install Node.js
+```bash
+# Restart your terminal, then:
+nvm install v22.15.1
+nvm use v22.15.1
+nvm alias default v22.15.1
+```
+
+##### Step 3: Install Lighthouse Globally
+```bash
+npm install -g lighthouse
+```
+
+##### Step 4: Verify Installation
+```bash
+node --version          # Should show v22.15.1
+npm --version          # Should show npm version
+lighthouse --version   # Should show 12.8.2 or later
+which lighthouse       # Should show path to lighthouse
+```
+
+#### Option 2: Direct Node.js Installation
+
+##### Step 1: Install Node.js
+- Download from [nodejs.org](https://nodejs.org/) (LTS version recommended)
+- Or use package managers:
+  ```bash
+  # macOS (Homebrew)
+  brew install node
+  
+  # Ubuntu/Debian
+  sudo apt update
+  sudo apt install nodejs npm
+  
+  # CentOS/RHEL
+  sudo yum install nodejs npm
+  ```
+
+##### Step 2: Install Lighthouse
+```bash
+npm install -g lighthouse
+```
+
+### 🏭 CI/CD Environment Setup
+
+#### GitHub Actions
+Create `.github/workflows/lighthouse-tests.yml`:
+
+```yaml
+name: Lighthouse Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lighthouse-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up JDK 11
+      uses: actions/setup-java@v4
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22.15.1'
+    
+    - name: Install Lighthouse
+      run: |
+        npm install -g lighthouse
+        lighthouse --version
+    
+    - name: Install Chrome
+      uses: browser-actions/setup-chrome@latest
+    
+    - name: Cache Maven dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+    
+    - name: Run Lighthouse Tests
+      run: |
+        mvn test -Dtest=LighthouseBasicTest
+    
+    - name: Upload Lighthouse Reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: lighthouse-reports
+        path: reports/lighthouse/
+```
+
+#### Jenkins Pipeline
+Create `Jenkinsfile`:
+
+```groovy
+pipeline {
+    agent any
+    
+    tools {
+        maven 'Maven 3.8'
+        jdk 'JDK 11'
+    }
+    
+    stages {
+        stage('Setup Node.js & Lighthouse') {
+            steps {
+                script {
+                    // Install Node.js using NodeJS plugin
+                    nodejs(nodeJSInstallationName: 'Node 22.15.1') {
+                        sh 'npm install -g lighthouse'
+                        sh 'lighthouse --version'
+                    }
+                }
+            }
+        }
+        
+        stage('Compile') {
+            steps {
+                sh 'mvn clean compile'
+            }
+        }
+        
+        stage('Run Lighthouse Tests') {
+            steps {
+                nodejs(nodeJSInstallationName: 'Node 22.15.1') {
+                    sh 'mvn test -Dtest=LighthouseBasicTest'
+                }
+            }
+            post {
+                always {
+                    publishHTML([
+                        allowMissing: false,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'reports/lighthouse',
+                        reportFiles: '*.html',
+                        reportName: 'Lighthouse Reports'
+                    ])
+                }
+            }
+        }
+    }
+}
+```
+
+### 🐳 Docker Setup
+
+#### Dockerfile
+Create a `Dockerfile` in your project root:
+
+```dockerfile
+FROM node:22.15.1
+
+# Install Java
+RUN apt-get update && \
+    apt-get install -y openjdk-11-jdk maven && \
+    apt-get clean
+
+# Install Chrome
+RUN apt-get update && \
+    apt-get install -y wget gnupg && \
+    wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - && \
+    echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list && \
+    apt-get update && \
+    apt-get install -y google-chrome-stable && \
+    apt-get clean
+
+# Install Lighthouse globally
+RUN npm install -g lighthouse
+
+# Set working directory
+WORKDIR /app
+
+# Copy project files
+COPY . .
+
+# Install Maven dependencies
+RUN mvn dependency:resolve
+
+# Default command
+CMD ["mvn", "test", "-Dtest=LighthouseBasicTest"]
+```
+
+#### Docker Compose
+Create `docker-compose.yml`:
+
+```yaml
+version: '3.8'
+
+services:
+  lighthouse-tests:
+    build: .
+    volumes:
+      - ./reports:/app/reports
+      - ./target:/app/target
+    environment:
+      - MAVEN_OPTS=-Xmx1024m
+    command: mvn test -Dtest=LighthouseBasicTest
+```
+
+#### Run with Docker
+```bash
+# Build and run
+docker-compose up --build
+
+# Or run directly
+docker build -t lighthouse-tests .
+docker run -v $(pwd)/reports:/app/reports lighthouse-tests
+```
+
+### 🔧 Troubleshooting
+
+#### Common Issues
+
+##### 1. "lighthouse: command not found"
+**Solution:**
+```bash
+# Check if Node.js is installed
+node --version
+
+# Install Lighthouse globally
+npm install -g lighthouse
+
+# Check installation
+which lighthouse
+lighthouse --version
+```
+
+##### 2. "Chrome not found" Error
+**Solution:**
+```bash
+# macOS
+brew install --cask google-chrome
+
+# Ubuntu/Debian
+wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list'
+sudo apt update
+sudo apt install google-chrome-stable
+
+# CentOS/RHEL
+sudo yum install google-chrome-stable
+```
+
+##### 3. "Permission denied" on lighthouse
+**Solution:**
+```bash
+# Fix npm permissions (Linux/macOS)
+sudo chown -R $(whoami) $(npm config get prefix)/{lib/node_modules,bin,share}
+
+# Or reinstall with correct permissions
+npm uninstall -g lighthouse
+npm install -g lighthouse
+```
+
+##### 4. Java ProcessBuilder issues
+**Solution:**
+The framework handles NVM paths automatically, but if issues persist:
+
+```bash
+# Create symlink (temporary fix)
+sudo ln -sf ~/.nvm/versions/node/v22.15.1/bin/lighthouse /usr/local/bin/lighthouse
+```
+
+### ✅ Environment-Specific Notes
+
+#### Windows
+- Use Git Bash or PowerShell
+- May need to run as Administrator for global npm installs
+- Chrome path might need manual configuration
+
+#### macOS
+- Homebrew is recommended for package management
+- No special configuration needed
+
+#### Linux
+- May need `sudo` for system package installations
+- Ensure Chrome/Chromium is installed
+- Check firewall settings for CI environments
+
+#### Cloud Environments (AWS/GCP/Azure)
+- Use container-based approaches (Docker)
+- Ensure adequate memory allocation (minimum 2GB)
+- Configure security groups for headless Chrome
+
 ## 🚀 Future Enhancements
 
 ### Phase 2 Implementation
