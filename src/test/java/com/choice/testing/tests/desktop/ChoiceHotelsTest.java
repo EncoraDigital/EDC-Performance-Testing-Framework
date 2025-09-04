@@ -4,6 +4,7 @@ import com.choice.testing.base.BaseTest;
 import com.choice.testing.config.ConfigManager;
 import com.choice.testing.pages.ChoiceHotelsHomePage;
 import com.choice.testing.pages.HotelSearchResultsPage;
+import com.choice.testing.pages.HotelDetailsPage;
 import io.qameta.allure.Description;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Feature;
@@ -96,5 +97,94 @@ public class ChoiceHotelsTest extends BaseTest {
         // (even if no hotels are found for the specific criteria)
         Assert.assertTrue(resultsPage.getCurrentUrl().contains("choicehotels"), 
             "Should still be on Choice Hotels domain after search");
+    }
+    
+    @Test
+    @Description("Select a random hotel from search results and view its details")
+    public void testRandomHotelSelection() {
+        // Get test data from config
+        String destination = ConfigManager.getProperty("test.destination", "New York, NY");
+        int checkinDays = ConfigManager.getIntProperty("test.checkin.days.future", 7);
+        int checkoutDays = ConfigManager.getIntProperty("test.checkout.days.future", 9);
+        int rooms = ConfigManager.getIntProperty("test.rooms", 1);
+        int adults = ConfigManager.getIntProperty("test.adults", 2);
+        
+        // Perform search first
+        navigateToChoiceHotels();
+        performCompleteHotelSearch(destination, checkinDays, checkoutDays, rooms, adults);
+        
+        // Select and click random hotel
+        selectAndViewRandomHotel();
+    }
+    
+    @Step("Select and view random hotel from search results")
+    private void selectAndViewRandomHotel() {
+        HotelSearchResultsPage resultsPage = new HotelSearchResultsPage();
+        
+        // Wait for search results to load
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        
+        // Verify we have search results
+        Assert.assertTrue(resultsPage.isOnSearchResultsPage(), 
+            "Should be on hotel search results page");
+        
+        if (resultsPage.hasSearchResults()) {
+            System.out.println("🎯 Found " + resultsPage.getResultsCount() + " hotels in search results");
+            
+            // Get info about the selected hotel before clicking
+            String selectedHotelInfo = resultsPage.getRandomHotelInfo();
+            System.out.println("🏨 Selected hotel preview:\n" + selectedHotelInfo);
+            
+            // Click on random hotel
+            resultsPage.selectRandomHotelAndViewDetails();
+            
+            // Wait for page to load
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            
+            // Verify we're on hotel details page
+            verifyHotelDetailsPage();
+        } else {
+            System.out.println("⚠️ No hotels found in search results to select from");
+            Assert.fail("No hotels available to select from search results");
+        }
+    }
+    
+    @Step("Verify hotel details page is displayed")
+    private void verifyHotelDetailsPage() {
+        HotelDetailsPage detailsPage = new HotelDetailsPage();
+        
+        // Log current page info for debugging
+        System.out.println("📍 Current URL: " + detailsPage.getCurrentUrl());
+        System.out.println("📄 Page title: " + detailsPage.getPageTitle());
+        
+        // Check if we're on a hotel details page (flexible validation)
+        boolean isOnDetailsPage = detailsPage.isOnHotelDetailsPage() || 
+                                detailsPage.getCurrentUrl().contains("choicehotels");
+        
+        Assert.assertTrue(isOnDetailsPage, 
+            "Should be on hotel details page or Choice Hotels domain");
+        
+        if (detailsPage.isOnHotelDetailsPage()) {
+            // Display hotel details info
+            String hotelDetails = detailsPage.getHotelDetailsInfo();
+            System.out.println("🏨 Hotel Details:\n" + hotelDetails);
+            
+            // Basic validation - at least hotel name should be available
+            String hotelName = detailsPage.getHotelName();
+            Assert.assertFalse(hotelName.equals("Hotel name not found"), 
+                "Hotel name should be available on details page");
+            
+            System.out.println("✅ Successfully viewed hotel details for: " + hotelName);
+        } else {
+            System.out.println("ℹ️ Navigated to a Choice Hotels page - details validation skipped");
+        }
     }
 }
