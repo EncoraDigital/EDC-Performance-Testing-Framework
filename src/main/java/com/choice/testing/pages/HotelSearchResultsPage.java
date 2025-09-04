@@ -118,8 +118,9 @@ public class HotelSearchResultsPage extends BasePage {
     
     public void clickSeeAvailabilityButton() {
         try {
-            // Wait for map flyout to appear first
-            wait.until(ExpectedConditions.visibilityOf(mapFlyout));
+            // Wait for map flyout to appear first with shorter timeout
+            wait.withTimeout(java.time.Duration.ofSeconds(10))
+                .until(ExpectedConditions.visibilityOf(mapFlyout));
             System.out.println("🗺️ Map flyout appeared");
             
             // Now click the See Availability button
@@ -132,13 +133,49 @@ public class HotelSearchResultsPage extends BasePage {
     }
     
     public void selectRandomHotelAndViewDetails() {
-        // Step 1: Click random hotel card (opens map flyout)
-        clickRandomHotelCard();
+        // Try multiple navigation approaches
+        boolean navigationSucceeded = false;
         
-        // Step 2: Click See Availability button (goes to hotel details)
-        clickSeeAvailabilityButton();
+        // Approach 1: Try the 2-step process (hotel card -> map flyout -> see availability)
+        try {
+            System.out.println("🔄 Attempting 2-step navigation (hotel card -> map flyout -> details)");
+            clickRandomHotelCard();
+            clickSeeAvailabilityButton();
+            navigationSucceeded = true;
+            System.out.println("✅ 2-step navigation succeeded");
+        } catch (Exception e) {
+            System.out.println("⚠️ 2-step navigation failed: " + e.getMessage());
+        }
         
-        System.out.println("✅ Completed 2-step hotel selection process");
+        // Approach 2: Try direct navigation if flyout approach failed
+        if (!navigationSucceeded) {
+            try {
+                System.out.println("🔄 Attempting direct navigation approach");
+                navigateToHotelDirectly();
+                navigationSucceeded = true;
+                System.out.println("✅ Direct navigation succeeded");
+            } catch (Exception e) {
+                System.out.println("⚠️ Direct navigation failed: " + e.getMessage());
+            }
+        }
+        
+        // Approach 3: Try alternative locators if both previous approaches failed
+        if (!navigationSucceeded) {
+            try {
+                System.out.println("🔄 Attempting alternative locator approach");
+                navigateUsingAlternativeLocators();
+                navigationSucceeded = true;
+                System.out.println("✅ Alternative navigation succeeded");
+            } catch (Exception e) {
+                System.out.println("⚠️ Alternative navigation failed: " + e.getMessage());
+            }
+        }
+        
+        if (!navigationSucceeded) {
+            throw new RuntimeException("All navigation approaches failed. Unable to navigate to hotel details.");
+        }
+        
+        System.out.println("✅ Hotel navigation completed successfully");
     }
     
     public String getRandomHotelInfo() {
@@ -147,6 +184,79 @@ public class HotelSearchResultsPage extends BasePage {
             return randomCard.getText();
         } catch (Exception e) {
             return "Could not retrieve hotel information";
+        }
+    }
+    
+    /**
+     * Fallback method 1: Navigate directly to hotel using different approach
+     */
+    private void navigateToHotelDirectly() {
+        try {
+            wait.until(ExpectedConditions.visibilityOfAllElements(hotelResults));
+            if (hotelResults.isEmpty()) {
+                throw new RuntimeException("No hotel cards available");
+            }
+            
+            Random random = new Random();
+            int randomIndex = random.nextInt(hotelResults.size());
+            WebElement selectedCard = hotelResults.get(randomIndex);
+            
+            System.out.println("🎲 Attempting direct click on hotel card at index: " + (randomIndex + 1));
+            
+            // Try clicking directly on the hotel card instead of the overlay button
+            clickElement(selectedCard);
+            System.out.println("🏨 Clicked directly on hotel card");
+            
+            // Wait for navigation
+            Thread.sleep(3000);
+            
+        } catch (Exception e) {
+            throw new RuntimeException("Direct navigation failed: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Fallback method 2: Use alternative locators and approaches
+     */
+    private void navigateUsingAlternativeLocators() {
+        try {
+            // Try finding clickable links within hotel cards
+            wait.until(ExpectedConditions.visibilityOfAllElements(hotelResults));
+            
+            for (int i = 0; i < hotelResults.size(); i++) {
+                WebElement hotelCard = hotelResults.get(i);
+                System.out.println("🔍 Searching for clickable elements in hotel card " + (i + 1));
+                
+                try {
+                    // Look for any clickable elements within the card
+                    var clickableElements = hotelCard.findElements(org.openqa.selenium.By.cssSelector("a, button, [onclick], [data-track-id]"));
+                    
+                    if (!clickableElements.isEmpty()) {
+                        System.out.println("🎯 Found " + clickableElements.size() + " clickable elements in card " + (i + 1));
+                        
+                        // Try clicking the first clickable element
+                        WebElement firstClickable = clickableElements.get(0);
+                        System.out.println("🖱️ Attempting click on: " + firstClickable.getTagName() + " with attributes: " + 
+                                         firstClickable.getAttribute("class") + ", " + firstClickable.getAttribute("data-track-id"));
+                        
+                        clickElement(firstClickable);
+                        
+                        // Wait to see if navigation occurred
+                        Thread.sleep(3000);
+                        
+                        System.out.println("✅ Alternative navigation attempt completed");
+                        return;
+                    }
+                } catch (Exception cardException) {
+                    System.out.println("⚠️ Failed to process card " + (i + 1) + ": " + cardException.getMessage());
+                    continue;
+                }
+            }
+            
+            throw new RuntimeException("No clickable elements found in any hotel cards");
+            
+        } catch (Exception e) {
+            throw new RuntimeException("Alternative navigation failed: " + e.getMessage(), e);
         }
     }
     
