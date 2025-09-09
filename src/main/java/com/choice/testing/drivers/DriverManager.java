@@ -26,9 +26,13 @@ public class DriverManager {
                 WebDriverManager.chromedriver().setup();
                 ChromeOptions chromeOptions = new ChromeOptions();
                 
-                // Basic options
+                // Performance optimization options
                 chromeOptions.addArguments("--no-sandbox");
                 chromeOptions.addArguments("--disable-dev-shm-usage");
+                chromeOptions.addArguments("--disable-gpu");
+                chromeOptions.addArguments("--disable-extensions");
+                chromeOptions.addArguments("--disable-plugins");
+                chromeOptions.addArguments("--disable-images");
                 chromeOptions.addArguments("--remote-allow-origins=*");
                 
                 // Basic anti-detection options
@@ -48,12 +52,12 @@ public class DriverManager {
                 throw new IllegalArgumentException("Browser not supported: " + browserType);
         }
         
-        getWebDriver().manage().timeouts().implicitlyWait(Duration.ofSeconds(30));
+        getWebDriver().manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
         getWebDriver().manage().window().maximize();
         
-        // Random delay to appear more human-like
+        // Reduced startup delay for performance
         try {
-            Thread.sleep(2000 + random.nextInt(3000)); // 2-5 second random delay
+            Thread.sleep(1000); // 1 second delay only
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
@@ -90,7 +94,7 @@ public class DriverManager {
                 throw new IllegalArgumentException("Mobile platform not supported: " + platformName);
         }
         
-        getMobileDriver().manage().timeouts().implicitlyWait(Duration.ofSeconds(30));
+        getMobileDriver().manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
     }
     
     private static java.util.Map<String, Object> getChromeOptionsForMobile() {

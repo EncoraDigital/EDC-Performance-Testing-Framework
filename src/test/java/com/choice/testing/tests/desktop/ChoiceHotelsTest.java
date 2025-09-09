@@ -75,12 +75,9 @@ public class ChoiceHotelsTest extends BaseTest {
     private void verifySearchResults() {
         HotelSearchResultsPage resultsPage = new HotelSearchResultsPage();
         
-        // Give some time for results to load
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        // Wait for results to load using explicit wait
+        HotelSearchResultsPage resultsPage = new HotelSearchResultsPage();
+        // The page object will handle the waiting internally
         
         // Verify we're on a search results page
         Assert.assertTrue(resultsPage.isOnSearchResultsPage(), 
@@ -121,12 +118,8 @@ public class ChoiceHotelsTest extends BaseTest {
     private void selectAndViewRandomHotel() {
         HotelSearchResultsPage resultsPage = new HotelSearchResultsPage();
         
-        // Wait for search results to load
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        // Wait for search results to load using explicit wait
+        // The page object will handle the waiting internally
         
         // Verify we have search results
         Assert.assertTrue(resultsPage.isOnSearchResultsPage(), 
@@ -142,12 +135,8 @@ public class ChoiceHotelsTest extends BaseTest {
             // Click on random hotel
             resultsPage.selectRandomHotelAndViewDetails();
             
-            // Wait for page to load
-            try {
-                Thread.sleep(3000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
+            // Wait for page to load using explicit wait
+            // The page object will handle the waiting internally
             
             // Verify we're on hotel details page
             verifyHotelDetailsPage();

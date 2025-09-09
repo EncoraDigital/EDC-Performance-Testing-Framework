@@ -207,8 +207,8 @@ public class HotelSearchResultsPage extends BasePage {
             clickElement(selectedCard);
             System.out.println("🏨 Clicked directly on hotel card");
             
-            // Wait for navigation
-            Thread.sleep(3000);
+            // Wait for navigation using implicit page load
+            wait.until(ExpectedConditions.urlContains("choicehotels"));
             
         } catch (Exception e) {
             throw new RuntimeException("Direct navigation failed: " + e.getMessage(), e);
@@ -242,7 +242,7 @@ public class HotelSearchResultsPage extends BasePage {
                         clickElement(firstClickable);
                         
                         // Wait to see if navigation occurred
-                        Thread.sleep(3000);
+                        wait.until(ExpectedConditions.urlContains("choicehotels"));
                         
                         System.out.println("✅ Alternative navigation attempt completed");
                         return;
