@@ -13,8 +13,8 @@ public class HotelSearchResultsPage extends BasePage {
     @FindBy(css = "a[data-track-id='viewByGrid']")
     private WebElement gridViewButton;
     
-    // Hotel cards in grid view
-    @FindBy(css = "li.search-results-map-card, .hotel-card, .property-card")
+    // Hotel cards - comprehensive locators for Choice Hotels
+    @FindBy(css = "li.search-results-map-card, .hotel-card, .property-card, .hotel-result, .property-listing, [data-testid*='hotel'], [data-testid*='property'], .result-item")
     private List<WebElement> hotelResults;
     
     @FindBy(css = ".results-count, .search-results-header")
@@ -34,15 +34,58 @@ public class HotelSearchResultsPage extends BasePage {
     
     public boolean hasSearchResults() {
         try {
+            System.out.println("🔍 Debugging: Looking for hotel results on the page");
+            System.out.println("📍 Current URL: " + getCurrentUrl());
+            System.out.println("📄 Page title: " + getPageTitle());
+            
+            // Wait for page to load
+            Thread.sleep(5000);
+            
+            // Try to find any potential hotel-related elements
+            debugPageElements();
+            
             // Wait for either results or no results message
-            wait.until(ExpectedConditions.or(
-                ExpectedConditions.visibilityOfAllElements(hotelResults),
-                ExpectedConditions.visibilityOf(noResultsMessage)
-            ));
+            try {
+                wait.until(ExpectedConditions.or(
+                    ExpectedConditions.visibilityOfAllElements(hotelResults),
+                    ExpectedConditions.visibilityOf(noResultsMessage)
+                ));
+            } catch (Exception waitException) {
+                System.out.println("⚠️ Timeout waiting for results or no-results message");
+            }
+            
+            System.out.println("🏨 Found " + hotelResults.size() + " hotel result elements");
             
             return hotelResults.size() > 0;
         } catch (Exception e) {
+            System.out.println("❌ Error in hasSearchResults: " + e.getMessage());
             return false;
+        }
+    }
+    
+    private void debugPageElements() {
+        try {
+            // Look for common hotel result patterns
+            String[] potentialSelectors = {
+                ".hotel", ".property", ".result", ".card", ".listing",
+                "[data-track-id]", "[data-testid]", ".search-result", 
+                ".accommodation", ".room", "li[class*='result']",
+                "div[class*='hotel']", "div[class*='property']"
+            };
+            
+            System.out.println("🔍 Scanning page for potential hotel elements:");
+            for (String selector : potentialSelectors) {
+                try {
+                    var elements = driver.findElements(org.openqa.selenium.By.cssSelector(selector));
+                    if (elements.size() > 0) {
+                        System.out.println("   ✅ Found " + elements.size() + " elements matching: " + selector);
+                    }
+                } catch (Exception e) {
+                    // Continue to next selector
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Error during page debugging: " + e.getMessage());
         }
     }
     
