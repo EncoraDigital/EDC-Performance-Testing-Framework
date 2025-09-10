@@ -127,11 +127,7 @@ public class ChoiceHotelsTest extends BaseTest {
         if (resultsPage.hasSearchResults()) {
             System.out.println("🎯 Found " + resultsPage.getResultsCount() + " hotels in search results");
             
-            // Get info about the selected hotel before clicking
-            String selectedHotelInfo = resultsPage.getRandomHotelInfo();
-            System.out.println("🏨 Selected hotel preview:\n" + selectedHotelInfo);
-            
-            // Click on random hotel
+            // Use the new Grid view approach to select and view hotel details
             resultsPage.selectRandomHotelAndViewDetails();
             
             // Wait for page to load using explicit wait

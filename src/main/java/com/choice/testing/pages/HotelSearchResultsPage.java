@@ -9,7 +9,12 @@ import java.util.Random;
 
 public class HotelSearchResultsPage extends BasePage {
     
-    @FindBy(css = "li.search-results-map-card")
+    // Grid view toggle button
+    @FindBy(css = "a[data-track-id='viewByGrid']")
+    private WebElement gridViewButton;
+    
+    // Hotel cards in grid view
+    @FindBy(css = "li.search-results-map-card, .hotel-card, .property-card")
     private List<WebElement> hotelResults;
     
     @FindBy(css = ".results-count, .search-results-header")
@@ -21,14 +26,11 @@ public class HotelSearchResultsPage extends BasePage {
     @FindBy(css = "h1, .page-title")
     private WebElement pageTitle;
     
-    @FindBy(css = "li.search-results-map-card button.button-overlay")
-    private List<WebElement> hotelCardButtons;
+    // See Availability buttons directly in grid cards
+    @FindBy(css = ".choice-button[data-track-id*='CheckAvailability'], .see-availability-button, button:contains('See Availability')")
+    private List<WebElement> seeAvailabilityButtons;
     
-    @FindBy(css = ".choice-button.primary_cta[data-track-id*='CheckAvailability']")
-    private WebElement seeAvailabilityButton;
-    
-    @FindBy(css = "div.map-flyout")
-    private WebElement mapFlyout;
+    // Removed old map flyout locators - using Grid view approach now
     
     public boolean hasSearchResults() {
         try {
@@ -50,6 +52,20 @@ public class HotelSearchResultsPage extends BasePage {
             return hotelResults.size();
         } catch (Exception e) {
             return 0;
+        }
+    }
+    
+    public void switchToGridView() {
+        try {
+            System.out.println("🔄 Switching to Grid view for better hotel card access");
+            wait.until(ExpectedConditions.elementToBeClickable(gridViewButton));
+            clickElement(gridViewButton);
+            System.out.println("✅ Successfully switched to Grid view");
+            
+            // Wait for grid view to load
+            Thread.sleep(2000);
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not switch to Grid view, continuing with current view: " + e.getMessage());
         }
     }
     
@@ -97,85 +113,35 @@ public class HotelSearchResultsPage extends BasePage {
     }
     
     
-    public void clickRandomHotelCard() {
-        try {
-            wait.until(ExpectedConditions.visibilityOfAllElements(hotelCardButtons));
-            if (hotelCardButtons.isEmpty()) {
-                throw new RuntimeException("No hotel cards available to click");
-            }
-            
-            Random random = new Random();
-            int randomIndex = random.nextInt(hotelCardButtons.size());
-            WebElement selectedCard = hotelCardButtons.get(randomIndex);
-            
-            System.out.println("🎲 Clicking random hotel card at index: " + (randomIndex + 1) + " of " + hotelCardButtons.size());
-            clickElement(selectedCard);
-            System.out.println("🏨 Successfully clicked random hotel card - map flyout should appear");
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to click random hotel card: " + e.getMessage(), e);
-        }
-    }
-    
-    public void clickSeeAvailabilityButton() {
-        try {
-            // Wait for map flyout to appear first with shorter timeout
-            wait.withTimeout(java.time.Duration.ofSeconds(10))
-                .until(ExpectedConditions.visibilityOf(mapFlyout));
-            System.out.println("🗺️ Map flyout appeared");
-            
-            // Now click the See Availability button
-            wait.until(ExpectedConditions.elementToBeClickable(seeAvailabilityButton));
-            clickElement(seeAvailabilityButton);
-            System.out.println("🔗 Clicked 'See Availability' button - navigating to hotel details");
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to click See Availability button: " + e.getMessage(), e);
-        }
-    }
+    // Removed old map flyout methods - using simplified Grid view approach
     
     public void selectRandomHotelAndViewDetails() {
-        // Try multiple navigation approaches
-        boolean navigationSucceeded = false;
-        
-        // Approach 1: Try the 2-step process (hotel card -> map flyout -> see availability)
         try {
-            System.out.println("🔄 Attempting 2-step navigation (hotel card -> map flyout -> details)");
-            clickRandomHotelCard();
-            clickSeeAvailabilityButton();
-            navigationSucceeded = true;
-            System.out.println("✅ 2-step navigation succeeded");
+            // Step 1: Switch to Grid view for easier access
+            switchToGridView();
+            
+            // Step 2: Find available See Availability buttons
+            wait.until(ExpectedConditions.visibilityOfAllElements(seeAvailabilityButtons));
+            
+            if (seeAvailabilityButtons.isEmpty()) {
+                throw new RuntimeException("No 'See Availability' buttons found in grid view");
+            }
+            
+            // Step 3: Select and click a random See Availability button
+            Random random = new Random();
+            int randomIndex = random.nextInt(seeAvailabilityButtons.size());
+            WebElement randomSeeAvailabilityButton = seeAvailabilityButtons.get(randomIndex);
+            
+            System.out.println("🎲 Clicking random 'See Availability' button " + (randomIndex + 1) + " of " + seeAvailabilityButtons.size());
+            
+            wait.until(ExpectedConditions.elementToBeClickable(randomSeeAvailabilityButton));
+            clickElement(randomSeeAvailabilityButton);
+            
+            System.out.println("✅ Successfully clicked 'See Availability' - navigating to hotel details");
+            
         } catch (Exception e) {
-            System.out.println("⚠️ 2-step navigation failed: " + e.getMessage());
+            throw new RuntimeException("Failed to select hotel in grid view: " + e.getMessage(), e);
         }
-        
-        // Approach 2: Try direct navigation if flyout approach failed
-        if (!navigationSucceeded) {
-            try {
-                System.out.println("🔄 Attempting direct navigation approach");
-                navigateToHotelDirectly();
-                navigationSucceeded = true;
-                System.out.println("✅ Direct navigation succeeded");
-            } catch (Exception e) {
-                System.out.println("⚠️ Direct navigation failed: " + e.getMessage());
-            }
-        }
-        
-        // Approach 3: Try alternative locators if both previous approaches failed
-        if (!navigationSucceeded) {
-            try {
-                System.out.println("🔄 Attempting alternative locator approach");
-                navigateUsingAlternativeLocators();
-                navigationSucceeded = true;
-                System.out.println("✅ Alternative navigation succeeded");
-            } catch (Exception e) {
-                System.out.println("⚠️ Alternative navigation failed: " + e.getMessage());
-            }
-        }
-        
-        if (!navigationSucceeded) {
-            throw new RuntimeException("All navigation approaches failed. Unable to navigate to hotel details.");
-        }
-        
-        System.out.println("✅ Hotel navigation completed successfully");
     }
     
     public String getRandomHotelInfo() {
@@ -187,78 +153,7 @@ public class HotelSearchResultsPage extends BasePage {
         }
     }
     
-    /**
-     * Fallback method 1: Navigate directly to hotel using different approach
-     */
-    private void navigateToHotelDirectly() {
-        try {
-            wait.until(ExpectedConditions.visibilityOfAllElements(hotelResults));
-            if (hotelResults.isEmpty()) {
-                throw new RuntimeException("No hotel cards available");
-            }
-            
-            Random random = new Random();
-            int randomIndex = random.nextInt(hotelResults.size());
-            WebElement selectedCard = hotelResults.get(randomIndex);
-            
-            System.out.println("🎲 Attempting direct click on hotel card at index: " + (randomIndex + 1));
-            
-            // Try clicking directly on the hotel card instead of the overlay button
-            clickElement(selectedCard);
-            System.out.println("🏨 Clicked directly on hotel card");
-            
-            // Wait for navigation using implicit page load
-            wait.until(ExpectedConditions.urlContains("choicehotels"));
-            
-        } catch (Exception e) {
-            throw new RuntimeException("Direct navigation failed: " + e.getMessage(), e);
-        }
-    }
-    
-    /**
-     * Fallback method 2: Use alternative locators and approaches
-     */
-    private void navigateUsingAlternativeLocators() {
-        try {
-            // Try finding clickable links within hotel cards
-            wait.until(ExpectedConditions.visibilityOfAllElements(hotelResults));
-            
-            for (int i = 0; i < hotelResults.size(); i++) {
-                WebElement hotelCard = hotelResults.get(i);
-                System.out.println("🔍 Searching for clickable elements in hotel card " + (i + 1));
-                
-                try {
-                    // Look for any clickable elements within the card
-                    var clickableElements = hotelCard.findElements(org.openqa.selenium.By.cssSelector("a, button, [onclick], [data-track-id]"));
-                    
-                    if (!clickableElements.isEmpty()) {
-                        System.out.println("🎯 Found " + clickableElements.size() + " clickable elements in card " + (i + 1));
-                        
-                        // Try clicking the first clickable element
-                        WebElement firstClickable = clickableElements.get(0);
-                        System.out.println("🖱️ Attempting click on: " + firstClickable.getTagName() + " with attributes: " + 
-                                         firstClickable.getAttribute("class") + ", " + firstClickable.getAttribute("data-track-id"));
-                        
-                        clickElement(firstClickable);
-                        
-                        // Wait to see if navigation occurred
-                        wait.until(ExpectedConditions.urlContains("choicehotels"));
-                        
-                        System.out.println("✅ Alternative navigation attempt completed");
-                        return;
-                    }
-                } catch (Exception cardException) {
-                    System.out.println("⚠️ Failed to process card " + (i + 1) + ": " + cardException.getMessage());
-                    continue;
-                }
-            }
-            
-            throw new RuntimeException("No clickable elements found in any hotel cards");
-            
-        } catch (Exception e) {
-            throw new RuntimeException("Alternative navigation failed: " + e.getMessage(), e);
-        }
-    }
+    // Removed complex fallback methods - Grid view approach is much simpler and more reliable
     
     private boolean isElementDisplayed(WebElement element) {
         try {
