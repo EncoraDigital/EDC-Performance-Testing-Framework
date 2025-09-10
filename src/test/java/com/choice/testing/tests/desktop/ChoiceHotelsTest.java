@@ -76,7 +76,6 @@ public class ChoiceHotelsTest extends BaseTest {
         HotelSearchResultsPage resultsPage = new HotelSearchResultsPage();
         
         // Wait for results to load using explicit wait
-        HotelSearchResultsPage resultsPage = new HotelSearchResultsPage();
         // The page object will handle the waiting internally
         
         // Verify we're on a search results page

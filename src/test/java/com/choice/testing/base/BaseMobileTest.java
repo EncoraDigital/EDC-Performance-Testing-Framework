@@ -44,9 +44,8 @@ public class BaseMobileTest {
         System.out.println("📱 Mobile driver initialized and navigated to: " + baseUrl);
     }
     
-    @Step("Add human-like delay for mobile interaction")
+    @Step("Add mobile delay - removed for performance")
     protected void addMobileDelay() {
-        // Mobile interactions typically need longer delays
-        DriverManager.humanDelay(1000, 3000);
+        // Mobile delays removed for maximum speed
     }
 }

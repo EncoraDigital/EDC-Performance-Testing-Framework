@@ -26,19 +26,22 @@ public class DriverManager {
                 WebDriverManager.chromedriver().setup();
                 ChromeOptions chromeOptions = new ChromeOptions();
                 
-                // Performance optimization options
+                // Ultra-fast performance optimization options
+                chromeOptions.addArguments("--headless");  // Headless for maximum speed
                 chromeOptions.addArguments("--no-sandbox");
                 chromeOptions.addArguments("--disable-dev-shm-usage");
                 chromeOptions.addArguments("--disable-gpu");
                 chromeOptions.addArguments("--disable-extensions");
                 chromeOptions.addArguments("--disable-plugins");
                 chromeOptions.addArguments("--disable-images");
+                chromeOptions.addArguments("--disable-web-security");
+                chromeOptions.addArguments("--disable-features=VizDisplayCompositor");
+                chromeOptions.addArguments("--disable-background-timer-throttling");
+                chromeOptions.addArguments("--disable-renderer-backgrounding");
+                chromeOptions.addArguments("--disable-backgrounding-occluded-windows");
                 chromeOptions.addArguments("--remote-allow-origins=*");
                 
-                // Basic anti-detection options
-                chromeOptions.addArguments("--disable-blink-features=AutomationControlled");
-                chromeOptions.setExperimentalOption("excludeSwitches", java.util.Arrays.asList("enable-automation"));
-                chromeOptions.setExperimentalOption("useAutomationExtension", false);
+                // Removed anti-detection features for maximum speed
                 
                 webDriver.set(new ChromeDriver(chromeOptions));
                 break;
@@ -52,15 +55,10 @@ public class DriverManager {
                 throw new IllegalArgumentException("Browser not supported: " + browserType);
         }
         
-        getWebDriver().manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
-        getWebDriver().manage().window().maximize();
+        getWebDriver().manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
+        // Skip window maximize for headless mode performance
         
-        // Reduced startup delay for performance
-        try {
-            Thread.sleep(1000); // 1 second delay only
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        // No startup delay for maximum speed
     }
 
     public static void initializeMobileDriver(String platformName, String deviceName) throws MalformedURLException {
@@ -94,7 +92,7 @@ public class DriverManager {
                 throw new IllegalArgumentException("Mobile platform not supported: " + platformName);
         }
         
-        getMobileDriver().manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
+        getMobileDriver().manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
     }
     
     private static java.util.Map<String, Object> getChromeOptionsForMobile() {
@@ -103,11 +101,10 @@ public class DriverManager {
         
         args.add("--no-sandbox");
         args.add("--disable-dev-shm-usage");
-        args.add("--disable-blink-features=AutomationControlled");
+        args.add("--disable-gpu");
+        args.add("--disable-extensions");
         
         chromeOptions.put("args", args);
-        chromeOptions.put("excludeSwitches", java.util.Arrays.asList("enable-automation"));
-        chromeOptions.put("useAutomationExtension", false);
         
         return chromeOptions;
     }
@@ -133,17 +130,5 @@ public class DriverManager {
         }
     }
 
-    // Human-like delay utility method
-    public static void humanDelay() {
-        humanDelay(500, 2000);
-    }
-    
-    public static void humanDelay(int minMs, int maxMs) {
-        try {
-            int delay = minMs + random.nextInt(maxMs - minMs);
-            Thread.sleep(delay);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-    }
+    // Human delay methods removed for maximum speed
 }
