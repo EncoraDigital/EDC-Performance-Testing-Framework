@@ -13,8 +13,8 @@ public class HotelSearchResultsPage extends BasePage {
     @FindBy(css = "a[data-track-id='viewByGrid']")
     private WebElement gridViewButton;
     
-    // Hotel cards - comprehensive locators for Choice Hotels
-    @FindBy(css = "li.search-results-map-card, .hotel-card, .property-card, .hotel-result, .property-listing, [data-testid*='hotel'], [data-testid*='property'], .result-item")
+    // Hotel cards - exact Grid view locator from actual HTML
+    @FindBy(css = "li.search-result-grid-view-card")
     private List<WebElement> hotelResults;
     
     @FindBy(css = ".results-count, .search-results-header")
@@ -26,8 +26,8 @@ public class HotelSearchResultsPage extends BasePage {
     @FindBy(css = "h1, .page-title")
     private WebElement pageTitle;
     
-    // See Availability buttons directly in grid cards
-    @FindBy(css = ".choice-button[data-track-id*='CheckAvailability'], .see-availability-button, button:contains('See Availability')")
+    // See Availability buttons - exact locator from actual HTML
+    @FindBy(css = "a.choice-button.primary_cta[data-track-id*='CheckAvailability']")
     private List<WebElement> seeAvailabilityButtons;
     
     // Removed old map flyout locators - using Grid view approach now
@@ -100,15 +100,30 @@ public class HotelSearchResultsPage extends BasePage {
     
     public void switchToGridView() {
         try {
-            System.out.println("🔄 Switching to Grid view for better hotel card access");
-            wait.until(ExpectedConditions.elementToBeClickable(gridViewButton));
-            clickElement(gridViewButton);
-            System.out.println("✅ Successfully switched to Grid view");
+            System.out.println("🔄 Checking if Grid view is already active or switching to it");
             
-            // Wait for grid view to load
-            Thread.sleep(2000);
+            // Check if we're already in Grid view by looking for grid cards
+            if (hotelResults.size() > 0) {
+                System.out.println("✅ Already in Grid view with " + hotelResults.size() + " hotel cards");
+                return;
+            }
+            
+            // Try to click Grid view button if not already in Grid view
+            try {
+                wait.until(ExpectedConditions.elementToBeClickable(gridViewButton));
+                clickElement(gridViewButton);
+                System.out.println("✅ Clicked Grid view button");
+                
+                // Wait for grid view to load
+                Thread.sleep(3000);
+                
+                System.out.println("✅ Grid view loaded with " + hotelResults.size() + " hotel cards");
+            } catch (Exception gridButtonException) {
+                System.out.println("⚠️ Grid view button not found or not clickable: " + gridButtonException.getMessage());
+            }
+            
         } catch (Exception e) {
-            System.out.println("⚠️ Could not switch to Grid view, continuing with current view: " + e.getMessage());
+            System.out.println("⚠️ Error in switchToGridView: " + e.getMessage());
         }
     }
     
