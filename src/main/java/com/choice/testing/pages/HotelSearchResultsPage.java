@@ -13,8 +13,8 @@ public class HotelSearchResultsPage extends BasePage {
     @FindBy(css = "a[data-track-id='viewByGrid']")
     private WebElement gridViewButton;
     
-    // Hotel cards - exact Grid view locator from actual HTML
-    @FindBy(css = "li.search-result-grid-view-card")
+    // Hotel cards - works for both List and Grid view
+    @FindBy(css = "li.search-result-grid-view-card, li[class*='result'], li.search-results-map-card")
     private List<WebElement> hotelResults;
     
     @FindBy(css = ".results-count, .search-results-header")
@@ -26,8 +26,8 @@ public class HotelSearchResultsPage extends BasePage {
     @FindBy(css = "h1, .page-title")
     private WebElement pageTitle;
     
-    // See Availability buttons - exact locator from actual HTML
-    @FindBy(css = "a.choice-button.primary_cta[data-track-id*='CheckAvailability']")
+    // See Availability buttons - works for both List and Grid view
+    @FindBy(css = "a.choice-button.primary_cta[data-track-id*='CheckAvailability'], a[data-track-id*='CheckAvailability'], button[data-track-id*='CheckAvailability'], .see-availability")
     private List<WebElement> seeAvailabilityButtons;
     
     // Removed old map flyout locators - using Grid view approach now
@@ -98,32 +98,38 @@ public class HotelSearchResultsPage extends BasePage {
         }
     }
     
-    public void switchToGridView() {
+    public void ensureHotelResultsVisible() {
         try {
-            System.out.println("🔄 Checking if Grid view is already active or switching to it");
+            System.out.println("🔄 Ensuring hotel results are visible (any view mode)");
             
-            // Check if we're already in Grid view by looking for grid cards
-            if (hotelResults.size() > 0) {
-                System.out.println("✅ Already in Grid view with " + hotelResults.size() + " hotel cards");
-                return;
-            }
+            // Wait for any hotel results to load
+            wait.until(ExpectedConditions.visibilityOfAllElements(hotelResults));
             
-            // Try to click Grid view button if not already in Grid view
-            try {
-                wait.until(ExpectedConditions.elementToBeClickable(gridViewButton));
-                clickElement(gridViewButton);
-                System.out.println("✅ Clicked Grid view button");
+            int resultCount = hotelResults.size();
+            System.out.println("✅ Found " + resultCount + " hotel results");
+            
+            if (resultCount == 0) {
+                System.out.println("⚠️ No hotel results found, trying Grid view switch");
                 
-                // Wait for grid view to load
-                Thread.sleep(3000);
-                
-                System.out.println("✅ Grid view loaded with " + hotelResults.size() + " hotel cards");
-            } catch (Exception gridButtonException) {
-                System.out.println("⚠️ Grid view button not found or not clickable: " + gridButtonException.getMessage());
+                // Try switching to Grid view as fallback
+                try {
+                    wait.until(ExpectedConditions.elementToBeClickable(gridViewButton));
+                    clickElement(gridViewButton);
+                    System.out.println("✅ Clicked Grid view button");
+                    
+                    // Wait for view to load
+                    Thread.sleep(3000);
+                    
+                    int newCount = hotelResults.size();
+                    System.out.println("✅ After Grid view switch: " + newCount + " hotel results");
+                    
+                } catch (Exception gridException) {
+                    System.out.println("⚠️ Grid view switch failed: " + gridException.getMessage());
+                }
             }
             
         } catch (Exception e) {
-            System.out.println("⚠️ Error in switchToGridView: " + e.getMessage());
+            System.out.println("⚠️ Error ensuring hotel results visibility: " + e.getMessage());
         }
     }
     
@@ -175,14 +181,14 @@ public class HotelSearchResultsPage extends BasePage {
     
     public void selectRandomHotelAndViewDetails() {
         try {
-            // Step 1: Switch to Grid view for easier access
-            switchToGridView();
+            // Step 1: Ensure hotel results are visible in any view mode
+            ensureHotelResultsVisible();
             
             // Step 2: Find available See Availability buttons
             wait.until(ExpectedConditions.visibilityOfAllElements(seeAvailabilityButtons));
             
             if (seeAvailabilityButtons.isEmpty()) {
-                throw new RuntimeException("No 'See Availability' buttons found in grid view");
+                throw new RuntimeException("No 'See Availability' buttons found on the page");
             }
             
             // Step 3: Select and click a random See Availability button
@@ -198,7 +204,7 @@ public class HotelSearchResultsPage extends BasePage {
             System.out.println("✅ Successfully clicked 'See Availability' - navigating to hotel details");
             
         } catch (Exception e) {
-            throw new RuntimeException("Failed to select hotel in grid view: " + e.getMessage(), e);
+            throw new RuntimeException("Failed to select hotel from search results: " + e.getMessage(), e);
         }
     }
     
