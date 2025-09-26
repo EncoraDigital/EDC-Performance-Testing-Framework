@@ -209,4 +209,77 @@ public class LighthouseHelper {
         
         System.out.println("✅ Comprehensive performance audit passed for: " + testName);
     }
+    
+    /**
+     * Audit with regression tracking and enhanced Allure reporting
+     * @param testName Name for the test report
+     * @return LighthouseMetrics with the audit results
+     */
+    @Step("Performance audit with regression tracking: {testName}")
+    public static LighthouseRunner.LighthouseMetrics auditWithRegressionTracking(String testName) throws Exception {
+        WebDriver driver = DriverManager.getWebDriver();
+        String currentUrl = driver.getCurrentUrl();
+        
+        // Run the audit
+        LighthouseRunner.LighthouseMetrics metrics = auditCurrentPage();
+        
+        // Create comprehensive performance dashboard
+        AllurePerformanceReporter.createPerformanceDashboard(metrics, testName, currentUrl);
+        
+        // Analyze for regressions
+        PerformanceRegressionTracker.RegressionAnalysis regressionAnalysis = 
+            PerformanceRegressionTracker.analyzeRegression(metrics, testName, currentUrl);
+        
+        // Create performance report with trends
+        PerformanceRegressionTracker.createPerformanceReport(testName);
+        
+        // Log regression status
+        if (regressionAnalysis.hasRegression()) {
+            System.out.println("⚠️ Performance regression detected in " + testName + 
+                " (Severity: " + regressionAnalysis.getSeverity() + ")");
+            for (String detail : regressionAnalysis.getRegressionDetails()) {
+                System.out.println("   - " + detail);
+            }
+        } else {
+            System.out.println("✅ No performance regression detected for: " + testName);
+        }
+        
+        return metrics;
+    }
+    
+    /**
+     * Set performance baseline for future regression comparisons
+     * @param testName Name of the test
+     */
+    @Step("Set performance baseline: {testName}")
+    public static void setPerformanceBaseline(String testName) throws Exception {
+        WebDriver driver = DriverManager.getWebDriver();
+        String currentUrl = driver.getCurrentUrl();
+        
+        LighthouseRunner.LighthouseMetrics metrics = auditCurrentPage();
+        PerformanceRegressionTracker.setNewBaseline(metrics, testName, currentUrl);
+        
+        System.out.println("✅ Performance baseline set for: " + testName);
+    }
+    
+    /**
+     * Compare performance between two test runs
+     * @param baselineTestName Name of baseline test
+     * @param currentTestName Name of current test
+     */
+    @Step("Compare performance: {currentTestName} vs {baselineTestName}")
+    public static void comparePerformance(String baselineTestName, String currentTestName) throws Exception {
+        // This would require loading historical data and comparing
+        // For now, we'll run current audit and compare with stored baseline
+        LighthouseRunner.LighthouseMetrics currentMetrics = auditCurrentPage();
+        
+        WebDriver driver = DriverManager.getWebDriver();
+        String currentUrl = driver.getCurrentUrl();
+        
+        // Analyze regression will handle the comparison
+        PerformanceRegressionTracker.RegressionAnalysis analysis = 
+            PerformanceRegressionTracker.analyzeRegression(currentMetrics, currentTestName, currentUrl);
+        
+        System.out.println("📊 Performance comparison completed between " + currentTestName + " and " + baselineTestName);
+    }
 }

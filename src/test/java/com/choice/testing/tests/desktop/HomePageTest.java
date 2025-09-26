@@ -3,6 +3,8 @@ package com.choice.testing.tests.desktop;
 import com.choice.testing.base.BaseTest;
 import com.choice.testing.pages.HomePage;
 import com.choice.testing.pages.SearchResultsPage;
+import com.choice.testing.utils.LighthouseHelper;
+import com.choice.testing.utils.LighthouseRunner;
 import io.qameta.allure.Description;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Feature;
@@ -15,29 +17,36 @@ import org.testng.annotations.Test;
 public class HomePageTest extends BaseTest {
     
     @Test
-    @Description("Verify DuckDuckGo home page loads successfully")
+    @Description("Verify DuckDuckGo home page loads successfully with performance audit")
     public void testHomePageLoad() {
         navigateToHomePage();
         verifyEssentialElements();
+        auditHomepagePerformance();
     }
     
     @Test
-    @Description("Verify search functionality works with results")
+    @Description("Verify search functionality works with results and performance")
     public void testSearchFunctionality() {
         navigateToHomePage();
         performSearch("Selenium WebDriver");
         verifySearchResults();
+        auditSearchResultsPerformance();
     }
     
     @Test
-    @Description("Test multiple clicks and navigation")
+    @Description("Test multiple clicks and navigation with performance tracking")
     public void testNavigationAndClicks() {
         navigateToHomePage();
         performSearch("Java testing framework");
+        auditSearchResultsPerformance();
+        
         clickFirstResult();
+        auditExternalPagePerformance();
+        
         navigateBackToSearch();
         performNewSearch("TestNG framework");
         verifySearchResults();
+        auditFinalSearchPerformance();
     }
     
     // @Test
@@ -150,5 +159,79 @@ public class HomePageTest extends BaseTest {
         homePage.searchFor(searchTerm);
         
         System.out.println("✅ Performed new search for: " + searchTerm);
+    }
+    
+    // Performance Audit Methods
+    
+    @Step("Audit DuckDuckGo homepage performance")
+    private void auditHomepagePerformance() {
+        try {
+            LighthouseHelper.quickPerformanceCheck("DuckDuckGo Homepage");
+            System.out.println("✅ DuckDuckGo homepage performance audit completed");
+        } catch (Exception e) {
+            System.out.println("⚠️ Homepage performance audit failed: " + e.getMessage());
+        }
+    }
+    
+    @Step("Audit search results performance")
+    private void auditSearchResultsPerformance() {
+        try {
+            // Run performance-only audit for faster execution
+            LighthouseRunner.LighthouseMetrics metrics = LighthouseHelper.auditPerformanceOnly();
+            
+            // Log performance score
+            double performanceScore = metrics.getPerformanceScore() * 100;
+            System.out.println("📊 Search results performance: " + String.format("%.1f%%", performanceScore));
+            
+            // Attach to Allure
+            HomePage homePage = new HomePage();
+            LighthouseRunner.attachAllReportsToAllure(metrics, 
+                homePage.getCurrentUrl(), 
+                "DuckDuckGo Search Results");
+            
+        } catch (Exception e) {
+            System.out.println("⚠️ Search results performance audit failed: " + e.getMessage());
+        }
+    }
+    
+    @Step("Audit external page performance after click")
+    private void auditExternalPagePerformance() {
+        try {
+            // Quick performance check for external site
+            LighthouseRunner.LighthouseMetrics metrics = LighthouseHelper.auditPerformanceOnly();
+            
+            double performanceScore = metrics.getPerformanceScore() * 100;
+            System.out.println("📊 External page performance: " + String.format("%.1f%%", performanceScore));
+            
+            // Attach with generic name since we don't know which site we landed on
+            HomePage homePage = new HomePage();
+            LighthouseRunner.attachAllReportsToAllure(metrics, 
+                homePage.getCurrentUrl(), 
+                "External Site Performance");
+            
+        } catch (Exception e) {
+            System.out.println("⚠️ External page performance audit failed: " + e.getMessage());
+        }
+    }
+    
+    @Step("Audit final search results performance")
+    private void auditFinalSearchPerformance() {
+        try {
+            // Comprehensive audit for final search
+            LighthouseRunner.LighthouseMetrics metrics = LighthouseHelper.auditAndAttachToAllure("Final Search Results");
+            
+            // Validate Core Web Vitals for the final search
+            try {
+                LighthouseHelper.validateCoreWebVitals(metrics);
+                System.out.println("✅ Final search results meet Core Web Vitals criteria");
+            } catch (AssertionError e) {
+                System.out.println("⚠️ Final search results Core Web Vitals: " + e.getMessage());
+            }
+            
+            System.out.println("✅ Final search performance audit completed");
+            
+        } catch (Exception e) {
+            System.out.println("⚠️ Final search performance audit failed: " + e.getMessage());
+        }
     }
 }

@@ -1,0 +1,19 @@
+{
+  "Environment Performance - Production-like" : {
+    "testName" : "Environment Performance - Production-like",
+    "url" : "https://www.choicehotels.com/",
+    "timestamp" : "2025-09-26T12:52:40.643117",
+    "gitCommit" : "unknown",
+    "buildNumber" : "local",
+    "environment" : "test",
+    "performanceScore" : 0.64,
+    "accessibilityScore" : 0.87,
+    "bestPracticesScore" : 0.57,
+    "seoScore" : 0.85,
+    "firstContentfulPaint" : 1055.445,
+    "largestContentfulPaint" : 2448.638,
+    "speedIndex" : 2075.0,
+    "totalBlockingTime" : 1981.3300000000002,
+    "cumulativeLayoutShift" : 0.15592622132302028
+  }
+}

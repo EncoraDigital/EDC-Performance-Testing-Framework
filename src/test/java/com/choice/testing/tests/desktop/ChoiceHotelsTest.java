@@ -5,6 +5,8 @@ import com.choice.testing.config.ConfigManager;
 import com.choice.testing.pages.ChoiceHotelsHomePage;
 import com.choice.testing.pages.HotelSearchResultsPage;
 import com.choice.testing.pages.HotelDetailsPage;
+import com.choice.testing.utils.LighthouseHelper;
+import com.choice.testing.utils.LighthouseRunner;
 import io.qameta.allure.Description;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Feature;
@@ -17,7 +19,7 @@ import org.testng.annotations.Test;
 public class ChoiceHotelsTest extends BaseTest {
     
     @Test
-    @Description("Complete hotel search flow on Choice Hotels website")
+    @Description("Complete hotel search flow on Choice Hotels website with performance audits")
     public void testHotelSearchFlow() {
         // Get test data from config
         String destination = ConfigManager.getProperty("test.destination", "New York, NY");
@@ -27,12 +29,15 @@ public class ChoiceHotelsTest extends BaseTest {
         int adults = ConfigManager.getIntProperty("test.adults", 2);
         
         navigateToChoiceHotels();
+        auditHomepagePerformance();
+        
         performCompleteHotelSearch(destination, checkinDays, checkoutDays, rooms, adults);
         verifySearchResults();
+        auditSearchResultsPerformance();
     }
     
     @Test
-    @Description("Verify Choice Hotels homepage loads correctly")
+    @Description("Verify Choice Hotels homepage loads correctly with performance audit")
     public void testChoiceHotelsHomepage() {
         ChoiceHotelsHomePage homePage = new ChoiceHotelsHomePage();
         homePage.navigateToHomePage();
@@ -44,6 +49,9 @@ public class ChoiceHotelsTest extends BaseTest {
         
         System.out.println("✅ Choice Hotels homepage loaded successfully");
         System.out.println("✅ Page title: " + homePage.getPageTitle());
+        
+        // Run comprehensive performance audit on homepage
+        runComprehensiveHomepageAudit();
     }
     
     @Step("Navigate to Choice Hotels website")
@@ -111,6 +119,7 @@ public class ChoiceHotelsTest extends BaseTest {
         
         // Select and click random hotel
         selectAndViewRandomHotel();
+        auditHotelDetailsPerformance();
     }
     
     @Step("Select and view random hotel from search results")
@@ -169,6 +178,100 @@ public class ChoiceHotelsTest extends BaseTest {
             System.out.println("✅ Successfully viewed hotel details for: " + hotelName);
         } else {
             System.out.println("ℹ️ Navigated to a Choice Hotels page - details validation skipped");
+        }
+    }
+    
+    // Performance Audit Methods
+    
+    @Step("Audit homepage performance")
+    private void auditHomepagePerformance() {
+        try {
+            LighthouseHelper.quickPerformanceCheck("Choice Hotels Homepage");
+            System.out.println("✅ Homepage performance audit completed");
+        } catch (Exception e) {
+            System.out.println("⚠️ Homepage performance audit failed: " + e.getMessage());
+            // Don't fail the test, just log the issue
+        }
+    }
+    
+    @Step("Run comprehensive homepage performance audit")
+    private void runComprehensiveHomepageAudit() {
+        try {
+            // Run audit with enhanced reporting and regression tracking
+            LighthouseRunner.LighthouseMetrics metrics = LighthouseHelper.auditWithRegressionTracking("Choice Hotels Homepage");
+            
+            // Validate performance scores (relaxed thresholds for real-world sites)
+            LighthouseHelper.validateScores(metrics, 40.0, 80.0, 70.0, 80.0);
+            
+            // Log performance summary
+            System.out.println("📊 Homepage Performance Summary:");
+            System.out.println("   Performance: " + String.format("%.1f%%", metrics.getPerformanceScore() * 100));
+            System.out.println("   Accessibility: " + String.format("%.1f%%", metrics.getAccessibilityScore() * 100));
+            System.out.println("   Best Practices: " + String.format("%.1f%%", metrics.getBestPracticesScore() * 100));
+            System.out.println("   SEO: " + String.format("%.1f%%", metrics.getSeoScore() * 100));
+            
+            System.out.println("✅ Comprehensive homepage audit completed successfully");
+            
+        } catch (AssertionError e) {
+            System.out.println("❌ Homepage failed performance criteria: " + e.getMessage());
+            // Log but don't fail - performance is informational for now
+        } catch (Exception e) {
+            System.out.println("⚠️ Comprehensive homepage audit failed: " + e.getMessage());
+        }
+    }
+    
+    @Step("Audit search results performance")
+    private void auditSearchResultsPerformance() {
+        try {
+            // Run performance-only audit for faster execution
+            LighthouseRunner.LighthouseMetrics metrics = LighthouseHelper.auditPerformanceOnly();
+            
+            // Attach to Allure manually
+            LighthouseRunner.attachAllReportsToAllure(metrics, 
+                new ChoiceHotelsHomePage().getCurrentUrl(), 
+                "Search Results Performance");
+            
+            // Validate search results performance (more lenient)
+            double performanceScore = metrics.getPerformanceScore() * 100;
+            if (performanceScore >= 30.0) {
+                System.out.println("✅ Search results performance acceptable: " + String.format("%.1f%%", performanceScore));
+            } else {
+                System.out.println("⚠️ Search results performance below expectations: " + String.format("%.1f%%", performanceScore));
+            }
+            
+        } catch (Exception e) {
+            System.out.println("⚠️ Search results performance audit failed: " + e.getMessage());
+        }
+    }
+    
+    @Step("Audit hotel details page performance")
+    private void auditHotelDetailsPerformance() {
+        try {
+            // Run mobile and desktop comparison for hotel details
+            LighthouseRunner.LighthouseMetrics desktopMetrics = LighthouseHelper.auditCurrentPageDesktop();
+            LighthouseRunner.LighthouseMetrics mobileMetrics = LighthouseHelper.auditCurrentPageMobile();
+            
+            // Attach both reports
+            String currentUrl = new HotelDetailsPage().getCurrentUrl();
+            LighthouseRunner.attachAllReportsToAllure(desktopMetrics, currentUrl, "Hotel Details Desktop");
+            LighthouseRunner.attachAllReportsToAllure(mobileMetrics, currentUrl, "Hotel Details Mobile");
+            
+            // Compare performance
+            double desktopPerf = desktopMetrics.getPerformanceScore() * 100;
+            double mobilePerf = mobileMetrics.getPerformanceScore() * 100;
+            
+            System.out.println("📊 Hotel Details Performance Comparison:");
+            System.out.println("🖥️  Desktop: " + String.format("%.1f%%", desktopPerf));
+            System.out.println("📱 Mobile: " + String.format("%.1f%%", mobilePerf));
+            
+            if (Math.abs(desktopPerf - mobilePerf) <= 20) {
+                System.out.println("✅ Desktop and mobile performance are well-aligned");
+            } else {
+                System.out.println("⚠️ Significant performance gap between desktop and mobile");
+            }
+            
+        } catch (Exception e) {
+            System.out.println("⚠️ Hotel details performance audit failed: " + e.getMessage());
         }
     }
 }
