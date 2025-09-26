@@ -2,7 +2,15 @@ package com.choice.testing.utils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.io.FileUtils;
+import com.github.kklisura.cdt.launch.ChromeLauncher;
+import com.github.kklisura.cdt.protocol.commands.Network;
+import com.github.kklisura.cdt.protocol.commands.Page;
+import com.github.kklisura.cdt.protocol.commands.Runtime;
+import com.github.kklisura.cdt.services.ChromeDevToolsService;
+import com.github.kklisura.cdt.services.ChromeService;
+import com.github.kklisura.cdt.services.types.ChromeTab;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import io.qameta.allure.Allure;
 import io.qameta.allure.Attachment;
 
@@ -85,6 +93,21 @@ public class LighthouseRunner {
         return runLighthouseAuditWithRetry(url, options, 3, 10000); // 3 retries with 10s delay
     }
     
+    /**
+     * Run Lighthouse audit on existing Selenium Chrome session using CDP
+     * @param url The URL to audit
+     * @param debuggingPort The Chrome debugging port (from DriverManager.getDebuggingPort())
+     * @param options Additional Lighthouse options
+     * @return LighthouseMetrics with the audit results
+     */
+    public static LighthouseMetrics runLighthouseOnSeleniumSession(String url, int debuggingPort, Map<String, String> options) throws Exception {
+        return runLighthouseOnSeleniumSessionWithRetry(url, debuggingPort, options, 3, 5000);
+    }
+    
+    public static LighthouseMetrics runLighthouseOnSeleniumSession(String url, int debuggingPort) throws Exception {
+        return runLighthouseOnSeleniumSession(url, debuggingPort, null);
+    }
+    
     private static LighthouseMetrics runLighthouseAuditWithRetry(String url, Map<String, String> options, int maxRetries, int delayMs) throws Exception {
         Exception lastException = null;
         
@@ -115,6 +138,124 @@ public class LighthouseRunner {
         }
         
         throw new RuntimeException("Lighthouse audit failed after " + maxRetries + " attempts", lastException);
+    }
+    
+    private static LighthouseMetrics runLighthouseOnSeleniumSessionWithRetry(String url, int debuggingPort, Map<String, String> options, int maxRetries, int delayMs) throws Exception {
+        Exception lastException = null;
+        
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                System.out.println("Running Lighthouse on existing Selenium session for: " + url + " (Port: " + debuggingPort + ", Attempt " + attempt + "/" + maxRetries + ")");
+                
+                if (attempt > 1) {
+                    System.out.println("Waiting " + delayMs + "ms before retry...");
+                    Thread.sleep(delayMs);
+                }
+                
+                return executeAuditOnSeleniumSession(url, debuggingPort, options);
+                
+            } catch (Exception e) {
+                lastException = e;
+                System.out.println("Attempt " + attempt + " failed: " + e.getMessage());
+                
+                if (attempt == maxRetries) {
+                    System.out.println("All retry attempts exhausted");
+                    break;
+                }
+                
+                delayMs *= 2;
+            }
+        }
+        
+        throw new RuntimeException("Lighthouse audit on Selenium session failed after " + maxRetries + " attempts", lastException);
+    }
+    
+    private static LighthouseMetrics executeAuditOnSeleniumSession(String url, int debuggingPort, Map<String, String> options) throws Exception {
+        createReportsDirectory();
+        
+        String timestamp = String.valueOf(System.currentTimeMillis());
+        String sanitizedUrl = url.replaceAll("[^a-zA-Z0-9]", "_");
+        String reportFileName = String.format("lighthouse_selenium_%s_%s", sanitizedUrl, timestamp);
+        String outputBasePath = REPORTS_DIR + "/" + reportFileName;
+        String jsonReportPath = outputBasePath + ".report.json";
+        String htmlReportPath = outputBasePath + ".report.html";
+        
+        // Build Lighthouse command to connect to existing Chrome instance
+        List<String> command = buildLighthouseCommandForSelenium(url, outputBasePath, debuggingPort, options);
+        
+        // Execute Lighthouse
+        Process process = executeCommand(command);
+        
+        // Verify that JSON report was generated
+        File jsonReport = new File(jsonReportPath);
+        if (!jsonReport.exists()) {
+            File reportsDir = new File(REPORTS_DIR);
+            System.out.println("Files in reports directory:");
+            if (reportsDir.exists()) {
+                for (File file : reportsDir.listFiles()) {
+                    System.out.println("  " + file.getName());
+                }
+            }
+            throw new RuntimeException("Lighthouse report was not generated: " + jsonReportPath);
+        }
+        
+        // Parse metrics from JSON report
+        LighthouseMetrics metrics = parseMetricsFromReport(jsonReportPath);
+        metrics.setReportPath(htmlReportPath);
+        
+        System.out.println("Lighthouse audit on Selenium session completed: " + metrics);
+        return metrics;
+    }
+    
+    private static List<String> buildLighthouseCommandForSelenium(String url, String outputBasePath, int debuggingPort, Map<String, String> options) {
+        List<String> command = new ArrayList<>();
+        
+        // Use nvm node path to ensure we use the correct Node.js version
+        String homeDir = System.getProperty("user.home");
+        String nvmNodePath = homeDir + "/.nvm/versions/node/v22.15.1/bin/lighthouse";
+        
+        // Check if nvm lighthouse exists, otherwise fall back to system lighthouse
+        File nvmLighthouse = new File(nvmNodePath);
+        if (nvmLighthouse.exists()) {
+            command.add(nvmNodePath);
+        } else {
+            command.add("lighthouse");
+        }
+        
+        command.add(url);
+        command.add("--output=json,html");
+        command.add("--output-path=" + outputBasePath);
+        
+        // Connect to existing Chrome instance via debugging port
+        command.add("--port=" + debuggingPort);
+        
+        // Chrome flags for connecting to existing instance
+        StringBuilder chromeFlags = new StringBuilder();
+        chromeFlags.append("--remote-debugging-port=").append(debuggingPort).append(" ");
+        chromeFlags.append("--no-sandbox ");
+        chromeFlags.append("--disable-dev-shm-usage ");
+        
+        command.add("--chrome-flags=" + chromeFlags.toString().trim());
+        
+        // Additional Lighthouse flags
+        command.add("--quiet");
+        command.add("--no-enable-error-reporting");
+        command.add("--max-wait-for-load=30000");
+        command.add("--throttling-method=provided"); // Use existing browser state
+        
+        // Add custom options if provided
+        if (options != null) {
+            for (Map.Entry<String, String> entry : options.entrySet()) {
+                if (entry.getValue() != null && !entry.getValue().isEmpty()) {
+                    command.add("--" + entry.getKey() + "=" + entry.getValue());
+                } else {
+                    command.add("--" + entry.getKey());
+                }
+            }
+        }
+        
+        System.out.println("Executing Lighthouse command for Selenium session: " + String.join(" ", command));
+        return command;
     }
     
     

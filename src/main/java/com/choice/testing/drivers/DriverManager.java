@@ -19,30 +19,13 @@ public class DriverManager {
     private static final ThreadLocal<WebDriver> webDriver = new ThreadLocal<>();
     private static final ThreadLocal<AppiumDriver> mobileDriver = new ThreadLocal<>();
     private static final Random random = new Random();
+    private static int debuggingPort = 9222;
 
     public static void initializeWebDriver(String browserType) {
         switch (browserType.toLowerCase()) {
             case "chrome":
                 WebDriverManager.chromedriver().setup();
-                ChromeOptions chromeOptions = new ChromeOptions();
-                
-                // Ultra-fast performance optimization options
-                chromeOptions.addArguments("--headless");  // Headless for maximum speed
-                chromeOptions.addArguments("--no-sandbox");
-                chromeOptions.addArguments("--disable-dev-shm-usage");
-                chromeOptions.addArguments("--disable-gpu");
-                chromeOptions.addArguments("--disable-extensions");
-                chromeOptions.addArguments("--disable-plugins");
-                chromeOptions.addArguments("--disable-images");
-                chromeOptions.addArguments("--disable-web-security");
-                chromeOptions.addArguments("--disable-features=VizDisplayCompositor");
-                chromeOptions.addArguments("--disable-background-timer-throttling");
-                chromeOptions.addArguments("--disable-renderer-backgrounding");
-                chromeOptions.addArguments("--disable-backgrounding-occluded-windows");
-                chromeOptions.addArguments("--remote-allow-origins=*");
-                
-                // Removed anti-detection features for maximum speed
-                
+                ChromeOptions chromeOptions = getChromeOptionsWithRemoteDebugging();
                 webDriver.set(new ChromeDriver(chromeOptions));
                 break;
                 
@@ -130,5 +113,36 @@ public class DriverManager {
         }
     }
 
-    // Human delay methods removed for maximum speed
+    private static ChromeOptions getChromeOptionsWithRemoteDebugging() {
+        ChromeOptions chromeOptions = new ChromeOptions();
+        
+        // Enable remote debugging for Lighthouse integration
+        chromeOptions.addArguments("--remote-debugging-port=" + debuggingPort);
+        chromeOptions.addArguments("--remote-allow-origins=*");
+        
+        // Performance optimization options
+        chromeOptions.addArguments("--no-sandbox");
+        chromeOptions.addArguments("--disable-dev-shm-usage");
+        chromeOptions.addArguments("--disable-gpu");
+        chromeOptions.addArguments("--disable-extensions");
+        chromeOptions.addArguments("--disable-plugins");
+        chromeOptions.addArguments("--disable-web-security");
+        chromeOptions.addArguments("--disable-features=VizDisplayCompositor");
+        chromeOptions.addArguments("--disable-background-timer-throttling");
+        chromeOptions.addArguments("--disable-renderer-backgrounding");
+        chromeOptions.addArguments("--disable-backgrounding-occluded-windows");
+        
+        // Optional: Remove headless for Lighthouse (Lighthouse works better with visible browser)
+        // chromeOptions.addArguments("--headless");
+        
+        return chromeOptions;
+    }
+    
+    public static int getDebuggingPort() {
+        return debuggingPort;
+    }
+    
+    public static void setDebuggingPort(int port) {
+        debuggingPort = port;
+    }
 }
