@@ -125,7 +125,7 @@ public class ComprehensivePerformanceTest extends BaseTest {
         // Simplified impact analysis
         System.out.println("📊 User Action Performance Impact (Optimized):");
         System.out.println("🎯 Final Performance Score: " + String.format("%.1f%%", finalMetrics.getPerformanceScore() * 100));
-        System.out.println("⚡ Core Web Vitals - FCP: " + finalMetrics.getFcp() + "ms, LCP: " + finalMetrics.getLcp() + "ms");
+        System.out.println("⚡ Core Web Vitals - FCP: " + String.format("%.0f", finalMetrics.getFirstContentfulPaint()) + "ms, LCP: " + String.format("%.0f", finalMetrics.getLargestContentfulPaint()) + "ms");
     }
 
     // Helper Methods
