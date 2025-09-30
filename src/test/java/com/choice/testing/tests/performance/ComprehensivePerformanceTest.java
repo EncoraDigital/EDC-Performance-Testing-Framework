@@ -70,6 +70,10 @@ public class ComprehensivePerformanceTest extends BaseTest {
             String testName = "Performance Monitoring Run " + run;
             LighthouseRunner.LighthouseMetrics metrics = LighthouseHelper.auditPerformanceOnly();
             
+            // Attach monitoring reports to Allure
+            String currentUrl = DriverManager.getWebDriver().getCurrentUrl();
+            LighthouseRunner.attachAllReportsToAllure(metrics, currentUrl, testName);
+            
             // Log this run's results
             System.out.println("📊 Run " + run + " Performance: " + String.format("%.1f%%", metrics.getPerformanceScore() * 100));
             
@@ -99,8 +103,8 @@ public class ComprehensivePerformanceTest extends BaseTest {
         // Run performance-only audit for speed
         LighthouseRunner.LighthouseMetrics metrics = LighthouseHelper.auditPerformanceOnly();
         
-        // Skip dashboard creation for speed
-        System.out.println("📊 Skipping dashboard creation for optimization");
+        // Attach environment performance reports to Allure
+        LighthouseRunner.attachAllReportsToAllure(metrics, envUrl, "Environment Performance - " + envName);
         
         // Validate environment performance
         validateEnvironmentPerformance(metrics, envName);
@@ -121,6 +125,10 @@ public class ComprehensivePerformanceTest extends BaseTest {
         
         // Single audit at the end
         LighthouseRunner.LighthouseMetrics finalMetrics = LighthouseHelper.auditPerformanceOnly();
+        
+        // Attach user action impact reports to Allure
+        String currentUrl = DriverManager.getWebDriver().getCurrentUrl();
+        LighthouseRunner.attachAllReportsToAllure(finalMetrics, currentUrl, "User Action Performance Impact");
         
         // Simplified impact analysis
         System.out.println("📊 User Action Performance Impact (Optimized):");
@@ -295,6 +303,10 @@ public class ComprehensivePerformanceTest extends BaseTest {
         // Combined baseline setting and comprehensive audit in one call
         LighthouseRunner.LighthouseMetrics metrics = LighthouseHelper.auditWithRegressionTracking("Choice Hotels Baseline & Feature Demo");
         
+        // Attach comprehensive Lighthouse reports to Allure
+        String currentUrl = DriverManager.getWebDriver().getCurrentUrl();
+        LighthouseRunner.attachAllReportsToAllure(metrics, currentUrl, "Baseline Performance Audit");
+        
         // Validate performance with relaxed thresholds for demo
         try {
             LighthouseHelper.validateScores(metrics, 30.0, 70.0, 60.0, 70.0);
@@ -303,7 +315,7 @@ public class ComprehensivePerformanceTest extends BaseTest {
             System.out.println("⚠️ Performance validation: " + e.getMessage());
         }
         
-        System.out.println("📊 Baseline established with comprehensive audit in single call");
+        System.out.println("📊 Baseline established with comprehensive audit and Allure reports attached");
     }
     
     @Step("Perform user journey - OPTIMIZED")
@@ -316,9 +328,13 @@ public class ComprehensivePerformanceTest extends BaseTest {
         
         // Single performance-only audit for the entire journey
         LighthouseRunner.LighthouseMetrics metrics = LighthouseHelper.auditPerformanceOnly();
-        System.out.println("📊 User journey performance: " + String.format("%.1f%%", metrics.getPerformanceScore() * 100));
         
-        System.out.println("🛤️ Optimized user journey tracking completed");
+        // Attach user journey performance reports to Allure
+        String currentUrl = DriverManager.getWebDriver().getCurrentUrl();
+        LighthouseRunner.attachAllReportsToAllure(metrics, currentUrl, "User Journey Performance");
+        
+        System.out.println("📊 User journey performance: " + String.format("%.1f%%", metrics.getPerformanceScore() * 100));
+        System.out.println("🛤️ Optimized user journey tracking completed with Allure reports");
     }
     
     @Step("Compare desktop vs mobile performance - OPTIMIZED")
@@ -328,6 +344,10 @@ public class ComprehensivePerformanceTest extends BaseTest {
         // Single performance-only audit (assume desktop, skip actual mobile for speed)
         LighthouseRunner.LighthouseMetrics desktopMetrics = LighthouseHelper.auditPerformanceOnly();
         
+        // Attach desktop performance reports to Allure
+        String currentUrl = DriverManager.getWebDriver().getCurrentUrl();
+        LighthouseRunner.attachAllReportsToAllure(desktopMetrics, currentUrl, "Desktop vs Mobile Comparison");
+        
         // Simulate mobile metrics for demo (in real scenario, you'd do actual mobile audit)
         double mobileScore = desktopMetrics.getPerformanceScore() * 0.85; // Simulate 15% lower mobile score
         
@@ -336,7 +356,7 @@ public class ComprehensivePerformanceTest extends BaseTest {
         System.out.println("📱 Mobile (simulated): " + String.format("%.1f%%", mobileScore * 100));
         System.out.println("📈 Difference: " + String.format("%.1f%%", Math.abs(desktopMetrics.getPerformanceScore() * 100 - mobileScore * 100)));
         
-        System.out.println("✅ Optimized desktop vs mobile comparison completed");
+        System.out.println("✅ Optimized desktop vs mobile comparison completed with Allure reports");
     }
     
     @Step("Demonstrate regression detection - OPTIMIZED")
@@ -346,11 +366,15 @@ public class ComprehensivePerformanceTest extends BaseTest {
         // Single audit instead of multiple
         LighthouseRunner.LighthouseMetrics metrics = LighthouseHelper.auditPerformanceOnly();
         
+        // Attach regression detection reports to Allure
+        String currentUrl = DriverManager.getWebDriver().getCurrentUrl();
+        LighthouseRunner.attachAllReportsToAllure(metrics, currentUrl, "Regression Detection Demo");
+        
         System.out.println("📊 Regression demo performance: " + 
             String.format("%.1f%%", metrics.getPerformanceScore() * 100));
         System.out.println("📈 Note: In full regression testing, this would include trend analysis");
             
-        System.out.println("🎯 Optimized regression detection demonstration completed");
+        System.out.println("🎯 Optimized regression detection demonstration completed with Allure reports");
     }
     
     @Step("Refresh page - OPTIMIZED")
