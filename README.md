@@ -140,11 +140,17 @@ mvn test -Dtest=HomePageTest#testHomePageLoad
 
 ### Performance Testing with Lighthouse
 ```bash
-# Run Lighthouse performance tests
+# Run basic Lighthouse performance tests
 mvn test -Dtest=LighthouseBasicTest
 
-# Run individual Lighthouse tests
-mvn test -Dtest=LighthouseBasicTest -Dtest.methods=testLighthouseBasicIntegration
+# Run comprehensive performance test suite (includes all features)
+mvn test -Dtest=ComprehensivePerformanceTest
+
+# Run specific comprehensive test methods
+mvn test -Dtest=ComprehensivePerformanceTest#testFullPerformanceAuditPipeline
+mvn test -Dtest=ComprehensivePerformanceTest#testPerformanceRegressionMonitoring
+mvn test -Dtest=ComprehensivePerformanceTest#testCrossEnvironmentPerformanceComparison
+mvn test -Dtest=ComprehensivePerformanceTest#testUserActionPerformanceImpact
 ```
 
 ### Mobile Tests (Future Implementation)
@@ -210,11 +216,15 @@ open allure-results/html-report/index.html
 
 ### Lighthouse Integration Features
 The Allure reports now include:
-- 📊 **Performance Metrics**: Core Web Vitals, Performance scores
-- 📄 **HTML Reports**: Interactive Lighthouse audit reports
-- 💾 **Raw Data**: JSON files with detailed performance data  
+- 📊 **Performance Metrics**: Core Web Vitals (FCP, LCP), Performance scores
+- 📄 **HTML Reports**: Interactive Lighthouse audit reports with visual charts
+- 💾 **Raw Data**: JSON files with detailed performance data
 - 📈 **Parameters**: Key metrics displayed in test overview
 - 📋 **Test Steps**: Detailed audit execution steps
+- 🔍 **Regression Tracking**: Performance trend analysis across multiple test runs
+- 📱 **Device Comparison**: Desktop vs Mobile performance comparison dashboards
+- ⚡ **Performance Baselines**: Establish and monitor performance baselines
+- 🎯 **User Journey Tracking**: Performance impact analysis of user actions
 
 ## 🎯 Writing Tests
 
@@ -261,11 +271,13 @@ public class LoginTest extends BaseTest {
 ```
 
 ### Creating a Lighthouse Performance Test
+
+#### Basic Lighthouse Test
 ```java
 @Epic("Performance Testing")
 @Feature("Lighthouse Integration")
 public class PerformanceTest extends BaseTest {
-    
+
     @Test
     @Story("Website Performance Audit")
     @Description("Performs Lighthouse audit and integrates results with Allure")
@@ -273,26 +285,100 @@ public class PerformanceTest extends BaseTest {
     public void testWebsitePerformance() throws Exception {
         String testUrl = "https://your-website.com";
         String testName = "Website Performance Audit";
-        
+
         Allure.step("Starting Lighthouse audit for: " + testUrl, () -> {
             System.out.println("Running performance audit...");
         });
-        
-        LighthouseRunner.LighthouseMetrics metrics = 
+
+        LighthouseRunner.LighthouseMetrics metrics =
             LighthouseRunner.runLighthouseAudit(testUrl);
-        
+
         // Attach reports to Allure
         LighthouseRunner.attachAllReportsToAllure(metrics, testUrl, testName);
-        
+
         // Assert performance thresholds
         Allure.step("Validating performance metrics", () -> {
-            Assert.assertTrue(metrics.getPerformanceScore() >= 0.5, 
+            Assert.assertTrue(metrics.getPerformanceScore() >= 0.5,
                 "Performance score should be at least 50%");
-            Assert.assertTrue(metrics.getAccessibilityScore() >= 0.9, 
+            Assert.assertTrue(metrics.getAccessibilityScore() >= 0.9,
                 "Accessibility score should be at least 90%");
         });
     }
 }
+```
+
+#### Comprehensive Performance Test with Regression Tracking
+```java
+@Epic("Performance Testing")
+@Feature("Comprehensive Lighthouse Integration")
+public class ComprehensivePerformanceTest extends BaseTest {
+
+    @Test
+    @Description("Full performance audit with baseline, regression tracking, and user journey")
+    public void testFullPerformanceAuditPipeline() throws Exception {
+        // Navigate to application
+        navigateToChoiceHotels();
+
+        // Set performance baseline
+        LighthouseRunner.LighthouseMetrics metrics =
+            LighthouseHelper.auditWithRegressionTracking("Homepage Baseline");
+
+        // Validate Core Web Vitals
+        LighthouseHelper.validateCoreWebVitals(metrics);
+
+        // Perform user journey with performance tracking
+        performHotelSearch("New York, NY");
+        LighthouseRunner.LighthouseMetrics journeyMetrics =
+            LighthouseHelper.auditPerformanceOnly();
+
+        // Attach all reports to Allure
+        String currentUrl = DriverManager.getWebDriver().getCurrentUrl();
+        LighthouseRunner.attachAllReportsToAllure(journeyMetrics, currentUrl,
+            "User Journey Performance");
+
+        // Generate regression report
+        PerformanceRegressionTracker.createPerformanceReport("Performance Trend Analysis");
+    }
+
+    @Test
+    @Description("Compare desktop vs mobile performance")
+    public void testDesktopMobileComparison() throws Exception {
+        navigateToChoiceHotels();
+
+        // Desktop audit
+        LighthouseRunner.LighthouseMetrics desktopMetrics =
+            LighthouseHelper.auditCurrentPageDesktop();
+
+        // Mobile audit
+        LighthouseRunner.LighthouseMetrics mobileMetrics =
+            LighthouseHelper.auditCurrentPageMobile();
+
+        // Create comparison dashboard
+        AllurePerformanceReporter.createPerformanceComparison(
+            desktopMetrics, mobileMetrics, "Desktop vs Mobile Performance");
+    }
+}
+```
+
+#### Available Lighthouse Helper Methods
+```java
+// Performance-only audits (faster execution)
+LighthouseHelper.auditPerformanceOnly();
+
+// Full audits with all categories
+LighthouseHelper.auditWithRegressionTracking("Test Name");
+
+// Device-specific audits
+LighthouseHelper.auditCurrentPageDesktop();
+LighthouseHelper.auditCurrentPageMobile();
+
+// Baseline management
+LighthouseHelper.setPerformanceBaseline("Baseline Name");
+
+// Validation
+LighthouseHelper.validateScores(metrics, perfThreshold, accessThreshold,
+    bestPracticesThreshold, seoThreshold);
+LighthouseHelper.validateCoreWebVitals(metrics);
 ```
 
 ## 🔍 Debugging
@@ -639,12 +725,16 @@ sudo ln -sf ~/.nvm/versions/node/v22.15.1/bin/lighthouse /usr/local/bin/lighthou
 - [ ] BrowserMob Proxy for network monitoring
 - [ ] Chrome DevTools Protocol performance metrics
 - [x] **Lighthouse integration with Allure reporting** ✅
+- [x] **Performance regression tracking** ✅
+- [x] **Desktop vs Mobile performance comparison** ✅
+- [x] **Core Web Vitals validation** ✅
 - [ ] OWASP ZAP security testing
 
-### Phase 3 Implementation  
+### Phase 3 Implementation
 - [ ] Grafana dashboard setup
-- [ ] Historical trend analysis
-- [ ] Performance regression detection
+- [x] **Historical trend analysis** ✅
+- [x] **Performance regression detection** ✅
+- [x] **Performance baseline management** ✅
 - [ ] CI/CD pipeline integration
 
 ## 🤝 Contributing
